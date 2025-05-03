@@ -18,7 +18,7 @@ def update_joint_state(data):
     global current_pose
     current_pose = data.position[:6]
 
-rospy.init_node("ik_jointstate_publisher")
+rospy.init_node("sim_endeffector")
 
 # Subscribe to joint states
 rospy.Subscriber("/joint_states", JointState, update_joint_state)

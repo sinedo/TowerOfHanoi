@@ -29,7 +29,7 @@ ik_solver = IK(base, endeffector, urdf_string=urdf, timeout=1, epsilon=1e-3)
 
 
 # Initialize ROS node
-rospy.init_node("om_endeffector_position")
+rospy.init_node("om_endeffector")
 
 # to send data to every servo
 publishers = [

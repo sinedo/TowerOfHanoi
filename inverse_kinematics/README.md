@@ -29,13 +29,23 @@ docker exec -it jolly_bhabha bash
 
 
 
-
+# Simulation: 
 1.) roscore
-2.) roslaunch open_manipulator_6dof_controller open_manipulator_6dof_controller.launch use_platform:=false ⁠
-3.) roslaunch open_manipulator_6dof_gazebo open_manipulator_6dof_gazebo.launch controller:=position
+2.) roslaunch open_manipulator_6dof_gazebo open_manipulator_6dof_gazebo.launch controller:=position
+3.) rosrun inverse_kinematics sim.py x y z yaw pitch roll
 
-#GUI
-4.) roslaunch open_manipulator_6dof_controller open_manipulator_6dof_controller.launch use_platform:=true ⁠
-4.) roslaunch open_manipulator_6dof_control_gui open_manipulator_6dof_control_gui.launch
+```
+rosrun inverse_kinematics sim.py 0 0 0.2 0 1.5 0
+```
+
+
+# on Hardware
+1.) roscore⁠
+2.) roslaunch om_position_controller position_control.launch
+3.) rosrun inverse_kinematics om.py x y z yaw pitch roll
 
 roslaunch om_position_controller position_control.launch
+
+```
+rosrun inverse_kinematics om.py 0 0 0.2 0 1.5 0
+```
