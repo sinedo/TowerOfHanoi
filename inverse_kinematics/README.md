@@ -5,7 +5,8 @@ sudo apt update
 sudo apt install ros-noetic-trac-ik
 cd ~/catkin_ws
 catkin_make
-source
+source devel/setup.bash
+cd ~/catkin_ws/src
 ```
 
 Now create a ROS package in the catkin_ws/src folder
@@ -30,9 +31,9 @@ docker exec -it jolly_bhabha bash
 
 
 # Simulation: 
-1.) roscore
-2.) roslaunch open_manipulator_6dof_gazebo open_manipulator_6dof_gazebo.launch controller:=position
-3.) rosrun inverse_kinematics sim.py x y z yaw pitch roll
+1.) roscore  
+2.) roslaunch open_manipulator_6dof_gazebo open_manipulator_6dof_gazebo.launch controller:=position  
+3.) rosrun inverse_kinematics sim.py x y z yaw pitch roll  
 
 ```
 rosrun inverse_kinematics sim.py 0 0 0.2 0 1.5 0
@@ -40,11 +41,9 @@ rosrun inverse_kinematics sim.py 0 0 0.2 0 1.5 0
 
 
 # on Hardware
-1.) roscore⁠
-2.) roslaunch om_position_controller position_control.launch
-3.) rosrun inverse_kinematics om.py x y z yaw pitch roll
-
-roslaunch om_position_controller position_control.launch
+1.) roscore⁠  
+2.) roslaunch om_position_controller position_control.launch  
+3.) rosrun inverse_kinematics om.py x y z yaw pitch roll  
 
 ```
 rosrun inverse_kinematics om.py 0 0 0.2 0 1.5 0
