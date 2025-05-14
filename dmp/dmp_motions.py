@@ -48,6 +48,8 @@ class DMPMotionGenerator:
         self.dmp = None
         self.IK_joint_trajectory = None
         
+        self.gripper_trajectory = None
+        
     def _load_kinematics(self, urdf_path, mesh_path=None):
         """Load robot kinematics from URDF"""
         with open(urdf_path, 'r') as f:
@@ -67,6 +69,9 @@ class DMPMotionGenerator:
         self.dmp = CartesianDMP(execution_time=max(time_stamp), dt=dt, n_weights_per_dim=n_weights)
         print(f"Start POSE: {Y[0]}")
         self.dmp.imitate(time_stamp, Y)
+        self.gripper_trajectory = gripper_trajectory
+
+        
         
         return Y, transforms, joint_trajectory, gripper_trajectory
 
@@ -161,14 +166,16 @@ class DMPMotionGenerator:
         if self.dmp is None:
             raise ValueError("No DMP model available to save")
         with open(filepath, 'wb') as f:
-            pickle.dump(self.dmp, f)
+            pickle.dump((self.dmp, self.gripper_trajectory), f)
         print(f"DMP saved to {filepath}")
 
     def load_dmp(self, filepath):
         """Load a DMP from file"""
         print(f"Loading DMP from {filepath}")
         with open(filepath, 'rb') as f:
-            self.dmp = pickle.load(f)
+            data = pickle.load(f)
+            self.dmp = data[0]
+            self.gripper_trajectory = data[1]
         print(f"DMP loaded successfully")
     
     def compute_IK_trajectory(self, trajectory, gripper_trajectory,  time_stamp, q0=None, subsample_factor=1):
@@ -228,7 +235,8 @@ class DMPMotionGenerator:
 
         try:
             moveit_commander.roscpp_initialize(sys.argv)
-            rospy.init_node('cartesian_to_joint_trajectory_planner', anonymous=True)
+
+            #rospy.init_node('cartesian_to_joint_trajectory_planner', anonymous=True)
 
             robot = moveit_commander.RobotCommander()
 
@@ -739,7 +747,7 @@ class DMPMotionGenerator:
 
 class ROSTrajectoryPublisher:
     def __init__(self, joint_names, topic_name='/gravity_compensation_controller/traj_joint_states', rate_hz=20):
-        rospy.init_node("dmp_trajectory_publisher", anonymous=True)
+        #rospy.init_node("dmp_trajectory_publisher", anonymous=True)
         self.publisher = rospy.Publisher(topic_name, JointState, queue_size=10)
         
         joint_names.append("gripper")
@@ -931,10 +939,9 @@ if __name__ == "__main__":
         bag_path, 
         '/gravity_compensation_controller/traj_joint_states'
     )
-    
     # Save the learned DMP if needed
-    dmp_gen.save_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
-    dmp_gen.load_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
+    dmp_gen.save_dmp('/root/catkin_ws/dmp/learned_pick_motion.pkl')
+    #dmp_gen.load_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
     
     ## Generate new trajectory
     
@@ -944,13 +951,13 @@ if __name__ == "__main__":
 
     orig_goal = dmp_gen.dmp.goal_y.copy()
     
-    new_start[:3] += np.array([0.00, 0.00,-0.1])
+    new_start[:3] += np.array([0.00, 0.00,0.0])
     #new_start[:3] = np.array([0.05, 0.05,0.01])
     
-    new_goal[:3] += np.array([0.0, -0.05, 0.01])  # Modify position
+    new_goal[:3] += np.array([0.0, 0.0, 0.0])  # Modify position
     #new_goal[:3] = np.array([0.125, 0.125, 0.05])
 
-    new_goal[3:] = np.array([0, 0, 1, 0])
+    #new_goal[3:] = np.array([0, 0, 1, 0])
 
 
     #new_goal[3:] = calculate_desired_orientation(new_goal[:3])
@@ -969,8 +976,8 @@ if __name__ == "__main__":
     q0 =  np.array([-0.09203885, 0.09817477, 1.59227204, -0.0076699,   1.40972841,  0.0322136 ])#dmp_gen.chain.inverse(new_start, initial_joint_angles = np.array([0.0, -0.78, 1.5, 0., 0.8, 0.]))
     # Visualize the trajectory
     
-    #trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory(trajectory, gripper_traj, T ,q0 =q0, subsample_factor=10)
-    trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory_pinocchio(trajectory, gripper_traj, T, subsample_factor=2)
+    trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory(trajectory, gripper_traj, T ,q0 =q0, subsample_factor=5)
+    #trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory_pinocchio(trajectory, gripper_traj, T, subsample_factor=2)
 
 
     transform_from_IK = []
