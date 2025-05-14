@@ -15,7 +15,7 @@ class Trajectories:
         mesh_path,
         base_link="world"
         )
-
+        """
         self.dmp_gen_place = DMPMotionGenerator(
             urdf_path, 
             mesh_path,
@@ -27,12 +27,12 @@ class Trajectories:
             mesh_path,
             base_link="world"
         )
-
+        """
         self.chain = self.dmp_gen_pick.chain #Pick chain from any dmp object
         
         self.dmp_gen_pick.load_dmp(pick_dmp_path)
-        self.dmp_gen_place.load_dmp(place_dmp_path) 
-        self.dmp_gen_return.load_dmp(return_dmp_path)
+        #self.dmp_gen_place.load_dmp(place_dmp_path) 
+        #self.dmp_gen_return.load_dmp(return_dmp_path)
 
 
         self.publisher = ROSTrajectoryPublisher(['joint1', 'joint2','joint3','joint4','joint5','joint6'])
@@ -51,7 +51,7 @@ class Trajectories:
         new_start = dmp_gen.dmp.start_y.copy()
         new_goal = dmp_gen.dmp.goal_y.copy()
 
-        start_xyz = dmp_gen.chain.forward(start_joint_configuration)[0:3]
+        start_xyz = ptr.pqs_from_transforms(dmp_gen.chain.forward(start_joint_configuration))[0:3]
 
         new_start[:3] = start_xyz
         new_goal[:3] = goal_xyz
@@ -65,7 +65,7 @@ class Trajectories:
         # Generate
         T, trajectory, trajectory_quat = dmp_gen.generate_trajectory(start_y=new_start, goal_y=new_goal)
 
-        trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory(trajectory, dmp_gen.gripper_traj, T ,q0 =None, subsample_factor=10)
+        trajectory, IK_joint_trajectory, gripper_traj ,T = dmp_gen.compute_IK_trajectory(trajectory, dmp_gen.gripper_trajectory, T ,q0 =None, subsample_factor=10)
 
 
         """
@@ -96,7 +96,7 @@ class Trajectories:
         """
         New approach for gripper trajectory alignment (not sure)
         """
-        gripper_traj_aligned = resample_1d_array_simplified(gripper_length, IK_joint_trajectory.shape[0])
+        gripper_traj_aligned = resample_1d_array_simplified(gripper_traj, IK_joint_trajectory.shape[0])
         
         full_trajectory = np.hstack((IK_joint_trajectory, gripper_traj_aligned.reshape(-1, 1)))
         # # Interpolate to 20Hz and Save
@@ -191,7 +191,7 @@ def get_single_message():
     """
     ToDo: GPUDetector already initializes a node. Maybe error, because you cannot initialize 2 nodes (i think?)
     """
-    rospy.init_node('dmp_trajectory_publisher', anonymous=True)
+  
     rospy.loginfo(f"Waiting for one message on topic '{TOPIC_NAME}'...")
 
     try:
@@ -250,6 +250,11 @@ def scan_objects(listener, class_names):
             listener.waitForTransform("world", class_name, rospy.Time(0), wait_duration)
             (translation, rotation) = listener.lookupTransform("world", class_name, lookup_time)
             print(f"{class_name}: {translation} - {rotation}")
+            #print(f"{class_name}")
+            #translation = np.array(translation)
+            #rotation = np.array(rotation)
+            #print(f"{class_name}")
+            pose_dict[class_name] = translation
         except:
             pass
             
@@ -257,7 +262,7 @@ def scan_objects(listener, class_names):
 
 
 
-    return {"box 1":  np.array([0.1, 0, 0.02, 0, 0, 1, 0])}#Example of data structure
+    return pose_dict#Example of data structure
 
 def transform_to_worldframe(pose_e_quat, we_SE3):
     """
@@ -305,10 +310,11 @@ if __name__ == "__main__":
     """
 
     rospy.init_node('internal_event_tf_listener', anonymous=True)
-    while True:
-        listener = tf.TransformListener()
-        class_names = ["box 1", "box 2", "box 3", "box 4", "box 5"]
-        scan_objects(listener, class_names)
+    listener = tf.TransformListener()
+    #while True:
+    #    listener = tf.TransformListener()
+     #   class_names = ["box 1", "box 2", "box 3", "box 4", "box 5"]
+     #   scan_objects(listener, class_names)
         
    
     """
@@ -322,15 +328,15 @@ if __name__ == "__main__":
     return_dmp_path = '/root/catkin_ws/dmp/learned_return_motion.pkl' #ToDo! Not yet generated
 
     trajectory_module = Trajectories(urdf_path, mesh_path, pick_dmp_path, place_dmp_path, return_dmp_path)
-
+    class_names = ["box 1", "box 2", "box 3", "box 4", "box 5"]
 
     while True:
         """
         Init to home position
         """
-        current_joint_configuration = get_current_joint_configuration()
-        trajectory_arr, time_arr = trajectory_module.generate_trajectory(self, "return", current_joint_configuration, goal_xyz)
-        trajectory_module.publish_trajectory(trajectory_arr, time_arr)
+        #current_joint_configuration = get_current_joint_configuration()
+        #trajectory_arr, time_arr = trajectory_module.generate_trajectory(self, "return", current_joint_configuration, goal_xyz)
+        #trajectory_module.publish_trajectory(trajectory_arr, time_arr)
 
         """
         Scan for boxes in scene 
@@ -339,8 +345,12 @@ if __name__ == "__main__":
 
         we_SE3 = trajectory_module.chain.forward(current_joint_configuration)#we_SE3 Homogenous transformation matrix for transforming end-effector frame in world-frame (or world-frame to end-effector frame? -> ToDo: check)
         
-        dict_object_poses_e_quat = scan_objects(detector)
-        dict_object_poses_w_quat = transform_object_poses_e_to_w(dict_object_poses_e_quat, we_SE3)
+        dict_object_poses_w_quat = {}
+        
+        while not dict_object_poses_w_quat:
+            dict_object_poses_w_quat = scan_objects(listener, class_names)
+            print(f"{dict_object_poses_w_quat}")
+        #dict_object_poses_w_quat = transform_object_poses_e_to_w(dict_object_poses_e_quat, we_SE3)
 
         """
         Analyze position ?
@@ -348,15 +358,18 @@ if __name__ == "__main__":
         For now:    stack box 4 on 5, then 3 on 4, then 3 on 2, then 2 on 1
                     Assume fixed orientation of the cubes: main orientation is parallel/antiparallel to x-axis (world frame), I think this works better with our dmps.
         """
-        pose_box_5 = dict_object_poses_w_quat["box 5"]
-        pose_box_4 = dict_object_poses_w_quat["box 4"]
+        #pose_box_5 = dict_object_poses_w_quat["box 5"]
+        for class_name in dict_object_poses_w_quat:
+            pose_box_4 = dict_object_poses_w_quat[class_name]
+            print(f"{pose_box_4}")
+            break
 
         """
         Pick box 4
         """
 
         current_joint_configuration = get_current_joint_configuration()
-        trajectory_arr, time_arr = trajectory_module.generate_trajectory(self, "pick", current_joint_configuration, pose_box_4)
+        trajectory_arr, time_arr = trajectory_module.generate_trajectory("pick", current_joint_configuration, pose_box_4)
         trajectory_module.publish_trajectory(trajectory_arr, time_arr)
         break
 

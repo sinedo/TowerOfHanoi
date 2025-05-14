@@ -69,8 +69,9 @@ class DMPMotionGenerator:
         self.dmp = CartesianDMP(execution_time=max(time_stamp), dt=dt, n_weights_per_dim=n_weights)
         print(f"Start POSE: {Y[0]}")
         self.dmp.imitate(time_stamp, Y)
-
         self.gripper_trajectory = gripper_trajectory
+
+        
         
         return Y, transforms, joint_trajectory, gripper_trajectory
 
@@ -165,14 +166,16 @@ class DMPMotionGenerator:
         if self.dmp is None:
             raise ValueError("No DMP model available to save")
         with open(filepath, 'wb') as f:
-            pickle.dump(self.dmp, f)
+            pickle.dump((self.dmp, self.gripper_trajectory), f)
         print(f"DMP saved to {filepath}")
 
     def load_dmp(self, filepath):
         """Load a DMP from file"""
         print(f"Loading DMP from {filepath}")
         with open(filepath, 'rb') as f:
-            self.dmp = pickle.load(f)
+            data = pickle.load(f)
+            self.dmp = data[0]
+            self.gripper_trajectory = data[1]
         print(f"DMP loaded successfully")
     
     def compute_IK_trajectory(self, trajectory, gripper_trajectory,  time_stamp, q0=None, subsample_factor=1):
@@ -232,7 +235,8 @@ class DMPMotionGenerator:
 
         try:
             moveit_commander.roscpp_initialize(sys.argv)
-            rospy.init_node('cartesian_to_joint_trajectory_planner', anonymous=True)
+
+            #rospy.init_node('cartesian_to_joint_trajectory_planner', anonymous=True)
 
             robot = moveit_commander.RobotCommander()
 
@@ -743,7 +747,7 @@ class DMPMotionGenerator:
 
 class ROSTrajectoryPublisher:
     def __init__(self, joint_names, topic_name='/gravity_compensation_controller/traj_joint_states', rate_hz=20):
-        rospy.init_node("dmp_trajectory_publisher", anonymous=True)
+        #rospy.init_node("dmp_trajectory_publisher", anonymous=True)
         self.publisher = rospy.Publisher(topic_name, JointState, queue_size=10)
         
         joint_names.append("gripper")
@@ -935,10 +939,9 @@ if __name__ == "__main__":
         bag_path, 
         '/gravity_compensation_controller/traj_joint_states'
     )
-    
     # Save the learned DMP if needed
-    dmp_gen.save_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
-    dmp_gen.load_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
+    dmp_gen.save_dmp('/root/catkin_ws/dmp/learned_pick_motion.pkl')
+    #dmp_gen.load_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
     
     ## Generate new trajectory
     
