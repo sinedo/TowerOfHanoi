@@ -1,3 +1,10 @@
+useful:
+
+``` bash
+xhost +
+docker exec -it <container-name> bash
+```
+
 Firstly install trac_ik:
 
 ``` bash
@@ -6,7 +13,7 @@ sudo apt install ros-noetic-trac-ik -y
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
-cd ~/catkin_ws/src
+cd ~/catkin_ws/src/desired/path
 ```
 
 Now create a ROS package in the catkin_ws/src folder
@@ -19,23 +26,14 @@ chmod +x ~/catkin_ws/src/inverse_kinematics/scripts/om.py
 
 chmod +x ~/catkin_ws/src/inverse_kinematics/scripts/sim.py
 
-
 ```
-
-
-useful:
-
-xhost +
-docker exec -it jolly_bhabha bash
-
-
 
 # Simulation: 
 1.) roscore  
 2.) roslaunch open_manipulator_6dof_gazebo open_manipulator_6dof_gazebo.launch controller:=position  
 3.) rosrun inverse_kinematics sim.py x y z yaw pitch roll  
 
-```
+``` bash
 rosrun inverse_kinematics sim.py 0 0 0.2 0 1.5 0
 ```
 
