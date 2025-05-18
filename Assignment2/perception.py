@@ -185,11 +185,8 @@ if __name__ == '__main__':
     sam_ckpt = "sam2_b.pt"
     object_class = "box"
    
-    try:   
-        print(f"detector start")
+    try:
         detector = GPUObjectDetector(model_path=model_path,confidence= 0.1, sam_ckpt = sam_ckpt,object_class = object_class)
-        print(f"detector end")
         rospy.spin()
-        print(f"spin")
     except rospy.ROSInterruptException:
         pass

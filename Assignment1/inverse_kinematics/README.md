@@ -2,7 +2,7 @@ Firstly install trac_ik:
 
 ``` bash
 sudo apt update
-sudo apt install ros-noetic-trac-ik
+sudo apt install ros-noetic-trac-ik -y
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
