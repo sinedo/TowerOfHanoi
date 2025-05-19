@@ -940,8 +940,9 @@ if __name__ == "__main__":
         '/gravity_compensation_controller/traj_joint_states'
     )
     # Save the learned DMP if needed
-    dmp_gen.save_dmp('/root/catkin_ws/dmp/learned_pick_motion.pkl')
-    #dmp_gen.load_dmp('/root/catkin_ws/recordings/learned_pick_motion.pkl')
+    
+    #dmp_gen.save_dmp(f"{sys.argv[1][:-3]}pkl")
+    dmp_gen.save_dmp('/root/catkin_ws/dmp/learned_place_motion_2.pkl')
     
     ## Generate new trajectory
     
@@ -951,10 +952,10 @@ if __name__ == "__main__":
 
     orig_goal = dmp_gen.dmp.goal_y.copy()
     
-    new_start[:3] += np.array([0.00, 0.00,0.0])
+    new_start[:3] = np.array([0.12, 0.00,0.01])
     #new_start[:3] = np.array([0.05, 0.05,0.01])
     
-    new_goal[:3] += np.array([0.0, 0.0, 0.0])  # Modify position
+    new_goal[:3] += np.array([-0.01, 0.01, 0.0])  # Modify position
     #new_goal[:3] = np.array([0.125, 0.125, 0.05])
 
     #new_goal[3:] = np.array([0, 0, 1, 0])

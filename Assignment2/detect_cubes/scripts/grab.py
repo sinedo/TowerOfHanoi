@@ -7,6 +7,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import pytransform3d.trajectories as ptr
 import tf
+import time
 
 class Trajectories:
     def __init__(self, urdf_path, mesh_path, pick_dmp_path, place_dmp_path, return_dmp_path):
@@ -16,29 +17,29 @@ class Trajectories:
         mesh_path,
         base_link="world"
         )
-        """
+        
         self.dmp_gen_place = DMPMotionGenerator(
             urdf_path, 
             mesh_path,
             base_link="world"
         )
-
+        
         self.dmp_gen_return = DMPMotionGenerator(
             urdf_path, 
             mesh_path,
             base_link="world"
         )
-        """
+        
         self.chain = self.dmp_gen_pick.chain #Pick chain from any dmp object
         
         self.dmp_gen_pick.load_dmp(pick_dmp_path)
-        #self.dmp_gen_place.load_dmp(place_dmp_path) 
-        #self.dmp_gen_return.load_dmp(return_dmp_path)
+        self.dmp_gen_place.load_dmp(place_dmp_path) 
+        self.dmp_gen_return.load_dmp(return_dmp_path)
 
 
         self.publisher = ROSTrajectoryPublisher(['joint1', 'joint2','joint3','joint4','joint5','joint6'])
 
-    def generate_trajectory(self, motion_class, start_joint_configuration, goal_xyz):
+    def generate_trajectory(self, motion_class, start_joint_configuration, goal_xyz=None, offset=np.array([-0.01, 0, 0.01])):
 
         if motion_class == "pick":
             dmp_gen = self.dmp_gen_pick
@@ -46,7 +47,7 @@ class Trajectories:
             dmp_gen = self.dmp_gen_place
         elif motion_class == "return":
             dmp_gen = self.dmp_gen_return
-            goal_xyz = dmp_gen.goal_y.copy() #Assume that return motion always moves to the original learned position.
+            goal_xyz = dmp_gen.dmp.goal_y.copy()[:3] #Assume that return motion always moves to the original learned position.
 
 
         new_start = dmp_gen.dmp.start_y.copy()
@@ -55,9 +56,9 @@ class Trajectories:
         start_xyz = ptr.pqs_from_transforms(dmp_gen.chain.forward(start_joint_configuration))[0:3]
 
         new_start[:3] = start_xyz
-        new_goal[:3] = goal_xyz
-
-        #new_goal[3:] = np.array([0, 0, 1, 0])
+        new_goal[:3] = goal_xyz+offset
+        if motion_class != "return":
+            new_goal[3:] = np.array([0, 0, 1, 0])
 
 
 
@@ -102,7 +103,7 @@ class Trajectories:
         full_trajectory = np.hstack((IK_joint_trajectory, gripper_traj_aligned.reshape(-1, 1)))
         # # Interpolate to 20Hz and Save
         interpolated_traj, interpolated_time = interpolate_joint_trajectory(full_trajectory, T, target_freq=20.0)
-
+        dmp_gen.visualize_trajectory(trajectory, IK_joint_trajectory)
         """
         Maybe uncomment later for documentation
 
@@ -180,10 +181,9 @@ from sensor_msgs.msg import JointState # <--- CHANGE THIS to your actual message
 # Define the topic name and message type
 # You can find these using 'rostopic list' and 'rostopic info /your_topic_name' in the terminal
 #TOPIC_NAME = "/open_manipulator_6dof/joint_states" # <--- CHANGE THIS to your topic name
-TOPIC_NAME = "/joint_states"
-MESSAGE_TYPE = JointState    # <--- CHANGE THIS to match the import above
+    # <--- CHANGE THIS to match the import above
 
-def get_single_message():
+def get_single_message(topic_name="/joint_states", message_type = JointState):
     """
     Subscribes to a topic, waits for a single message, and returns it.
     """
@@ -193,22 +193,22 @@ def get_single_message():
     ToDo: GPUDetector already initializes a node. Maybe error, because you cannot initialize 2 nodes (i think?)
     """
   
-    rospy.loginfo(f"Waiting for one message on topic '{TOPIC_NAME}'...")
+    rospy.loginfo(f"Waiting for one message on topic '{topic_name}'...")
 
     try:
         # Wait for a single message from the topic.
         # timeout: Optional duration in seconds to wait. If None, waits indefinitely.
-        message = rospy.wait_for_message(TOPIC_NAME, MESSAGE_TYPE, timeout=10.0)
+        message = rospy.wait_for_message(topic_name, message_type, timeout=10.0)
 
         rospy.loginfo("Message received!")
 
         # Now you have the 'message' object containing the data
         # Access its fields as needed. For example, if it's JointState:
-        if isinstance(message, JointState):
-            rospy.loginfo(f"Received JointState message for the starting position with:")
-            rospy.loginfo(f"  Header Stamp: {message.header.stamp}")
-            rospy.loginfo(f"  Joint Names: {message.name}")
-            rospy.loginfo(f"  Positions: {message.position}")
+        if isinstance(message, message_type):
+            rospy.loginfo(f"Received {message_type} message for {topic_name} with:")
+            #rospy.loginfo(f"  Header Stamp: {message.header.stamp}")
+            #rospy.loginfo(f"  Joint Names: {message.name}")
+            #rospy.loginfo(f"  Positions: {message.position}")
             # rospy.loginfo(f"  Velocities: {message.velocity}") # Often included
             # rospy.loginfo(f"  Efforts: {message.effort}")     # Often included
             # You can return the specific part you need, e.g., positions
@@ -219,7 +219,7 @@ def get_single_message():
              return message # Return the whole message object
 
     except rospy.ROSException as e:
-        rospy.logerr(f"Failed to get message from '{TOPIC_NAME}' within timeout: {e}")
+        rospy.logerr(f"Failed to get message from '{topic_name}' within timeout: {e}")
         return None
     except rospy.ROSInterruptException:
         rospy.loginfo("ROS node shutdown while waiting for message.")
@@ -230,7 +230,7 @@ def get_current_joint_configuration():
         current_position_joint = get_single_message().position
         return current_position_joint
     except AttributeError:
-        sys.exit(f"Message does not contain position!")
+        print(f"Message does not contain position!")
 
 def scan_objects(listener, class_names):
     """
@@ -264,6 +264,8 @@ def scan_objects(listener, class_names):
 
 
     return pose_dict#Example of data structure
+
+
 
 def transform_to_worldframe(pose_e_quat, we_SE3):
     """
@@ -324,12 +326,12 @@ if __name__ == "__main__":
 
     urdf_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/urdf/open_manipulator_6dof.urdf'
     mesh_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/meshes'
-    pick_dmp_path = '/root/catkin_ws/dmp/learned_pick_motion.pkl' #ToDo! Not yet generated
+    pick_dmp_path = '/root/catkin_ws/dmp/learned_pick_motion_3.pkl' #ToDo! Not yet generated
     place_dmp_path = '/root/catkin_ws/dmp/learned_place_motion.pkl' #ToDo! Not yet generated 
     return_dmp_path = '/root/catkin_ws/dmp/learned_return_motion.pkl' #ToDo! Not yet generated
 
     trajectory_module = Trajectories(urdf_path, mesh_path, pick_dmp_path, place_dmp_path, return_dmp_path)
-    class_names = ["Box1", "Box2", "Box3", "Box4", "Box5"]
+    class_names = ["box 1", "box 2", "box 3", "box 4", "box 5"]
 
     while True:
         """
@@ -348,9 +350,13 @@ if __name__ == "__main__":
         
         dict_object_poses_w_quat = {}
         
+        i = 0
         while not dict_object_poses_w_quat:
+            i+=1
             dict_object_poses_w_quat = scan_objects(listener, class_names)
             print(f"{dict_object_poses_w_quat}")
+            if i >2: 
+                break
         #dict_object_poses_w_quat = transform_object_poses_e_to_w(dict_object_poses_e_quat, we_SE3)
 
         """
@@ -368,11 +374,24 @@ if __name__ == "__main__":
         """
         Pick box 4
         """
-
+        
         current_joint_configuration = get_current_joint_configuration()
         trajectory_arr, time_arr = trajectory_module.generate_trajectory("pick", current_joint_configuration, pose_box_4)
+        #trajectory_module.visualize_trajectory(trajectory_arr)
+        trajectory_module.publish_trajectory(trajectory_arr, time_arr)  
+
+        current_joint_configuration = get_current_joint_configuration()
+        trajectory_arr, time_arr = trajectory_module.generate_trajectory("place", current_joint_configuration, np.array([0.1, -0.1, 0.005]))
+        trajectory_module.publish_trajectory(trajectory_arr, time_arr)
+
+        
+        rospy.sleep(5)
+        current_joint_configuration = get_current_joint_configuration()
+        trajectory_arr, time_arr = trajectory_module.generate_trajectory("return", current_joint_configuration)
         trajectory_module.publish_trajectory(trajectory_arr, time_arr)
         break
+
+
 
         """
         ToDo:   Check if gripper is not fully closed -> pick succesfull

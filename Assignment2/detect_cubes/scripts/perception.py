@@ -180,10 +180,10 @@ class GPUObjectDetector:
         )
 
 if __name__ == '__main__':
-    model_path = "/root/catkin_ws/src/yolo_results/train/weights/best.pt" # <--- change the path accordingly
+    model_path = "/root/catkin_ws/python_files/best.pt" # <--- change the path accordingly
     confidence = 0.7
-    sam_ckpt = "/root/catkin_ws/src/sam2_b.pt" # <--- change the path accordingly 
-    object_class = "Box"
+    sam_ckpt = "/root/catkin_ws/sam2_b.pt" # <--- change the path accordingly 
+    object_class = "box"
    
     try:
         detector = GPUObjectDetector(model_path=model_path,confidence= 0.1, sam_ckpt = sam_ckpt,object_class = object_class)
