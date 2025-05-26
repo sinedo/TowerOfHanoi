@@ -212,8 +212,7 @@ It relies on understanding the relative positions of "tomorrow" and "yesterday" 
 
 Would you like to attempt another word puzzle, or would you like a different type of challenge?
 
-## Q: If pressing a switch turns on a light, and the light is not on, what can you infer about the switch (assuming the bulb is working and
-... there's power)?
+## Q: If pressing a switch turns on a light, and the light is not on, what can you infer about the switch (assuming the bulb is working and there's power)?
 You can infer that the switch is **not making proper contact**.
 
 Here’s the breakdown of why:
