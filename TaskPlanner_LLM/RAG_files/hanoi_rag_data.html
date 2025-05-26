@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower of Hanoi - All States and Moves (3 Disks) - Updated Format</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 900px; margin: auto; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;}
+        h2 { color: #34495e; margin-top: 30px;}
+        .state-list { list-style-type: none; padding-left: 0; }
+        .state-item { background-color: #f9f9f9; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .state-repr { font-weight: bold; color: #2980b9; font-family: monospace; font-size: 1.1em; margin-bottom: 10px; line-height: 1.4; } /* Adjusted line-height */
+        .moves-list { list-style-type: square; padding-left: 20px; margin-top: 5px;}
+        .moves-list li { font-family: monospace; color: #555; margin-bottom: 5px;}
+        .explanation { background-color: #e8f6fd; border-left: 5px solid #3498db; padding: 15px; margin-bottom: 25px; border-radius: 4px;}
+    </style>
+</head>
+<body>
+    <h1>Tower of Hanoi: All Possible States and Valid Moves (3 Disks)</h1>
+
+    <div class="explanation">
+        <p>This section lists all 27 unique valid states for the Tower of Hanoi puzzle with 3 disks (labeled 1, 2, 3, where 1 is the smallest) and 3 pegs (A, B, C). For each state, all possible valid moves are listed.</p>
+        <p>A state is described by the disks on each peg (from bottom-most to top-most). "empty" indicates no disks on that peg.</p>
+        <p>Moves are in the format <code>MD&lt;disk_number&gt;&lt;source_peg&gt;&lt;destination_peg&gt;</code>.</p>
+        <p>Only choose moves that are associated with the "Current Tower of Hanoi state"! </p>
+        <p>Always make sure, think about which disk is currently on which peg!</p>
+    </div>
+
+    <ol class="state-list">
+        <li class="state-item"> <div class="state-repr">
+                State 1:<br>
+                Peg A: 3, 2, 1<br>
+                Peg B: empty<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1AB</li>
+                <li>MD1AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 2:<br>
+                Peg A: 3, 2<br>
+                Peg B: 1<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 3:<br>
+                Peg A: 3, 2<br>
+                Peg B: empty<br>
+                Peg C: 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 4:<br>
+                Peg A: 3, 1<br>
+                Peg B: 2<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 5:<br>
+                Peg A: 3<br>
+                Peg B: 2, 1<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD3AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 6:<br>
+                Peg A: 3<br>
+                Peg B: 2<br>
+                Peg C: 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2BA</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 7:<br>
+                Peg A: 3, 1<br>
+                Peg B: empty<br>
+                Peg C: 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2CB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 8:<br>
+                Peg A: 3<br>
+                Peg B: 1<br>
+                Peg C: 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2CB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 9:<br>
+                Peg A: 3<br>
+                Peg B: empty<br>
+                Peg C: 2, 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD3AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 10:<br>
+                Peg A: 2, 1<br>
+                Peg B: 3<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1AB</li>
+                <li>MD1AC</li>
+                <li>MD3BC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 11:<br>
+                Peg A: 2<br>
+                Peg B: 3, 1<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 12:<br>
+                Peg A: 2<br>
+                Peg B: 3<br>
+                Peg C: 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 13:<br>
+                Peg A: 1<br>
+                Peg B: 3, 2<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 14:<br>
+                Peg A: empty<br>
+                Peg B: 3, 2, 1<br>
+                Peg C: empty
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 15:<br>
+                Peg A: empty<br>
+                Peg B: 3, 2<br>
+                Peg C: 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 16:<br>
+                Peg A: 1<br>
+                Peg B: 3<br>
+                Peg C: 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2CB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 17:<br>
+                Peg A: empty<br>
+                Peg B: 3, 1<br>
+                Peg C: 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2CA</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 18:<br>
+                Peg A: empty<br>
+                Peg B: 3<br>
+                Peg C: 2, 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD3AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 19:<br>
+                Peg A: 2, 1<br>
+                Peg B: empty<br>
+                Peg C: 3
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1AB</li>
+                <li>MD1AC</li>
+                <li>MD3BA</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 20:<br>
+                Peg A: 2<br>
+                Peg B: 1<br>
+                Peg C: 3
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 21:<br>
+                Peg A: 2<br>
+                Peg B: empty<br>
+                Peg C: 3, 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 22:<br>
+                Peg A: 1<br>
+                Peg B: 2<br>
+                Peg C: 3
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2CA</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 23:<br>
+                Peg A: empty<br>
+                Peg B: 2, 1<br>
+                Peg C: 3
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD3AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 24:<br>
+                Peg A: empty<br>
+                Peg B: 2<br>
+                Peg C: 3, 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+                <li>MD2CA</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 25:<br>
+                Peg A: 1<br>
+                Peg B: empty<br>
+                Peg C: 3, 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AB</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 26:<br>
+                Peg A: empty<br>
+                Peg B: 1<br>
+                Peg C: 3, 2
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1BA</li>
+                <li>MD1BC</li>
+                <li>MD2AC</li>
+            </ul>
+        </li>
+        <li class="state-item"> <div class="state-repr">
+                State 27:<br>
+                Peg A: empty<br>
+                Peg B: empty<br>
+                Peg C: 3, 2, 1
+            </div>
+            <p>Possible Moves:</p>
+            <ul class="moves-list">
+                <li>MD1CA</li>
+                <li>MD1CB</li>
+            </ul>
+        </li>
+    </ol>
+
+</body>
+</html>
