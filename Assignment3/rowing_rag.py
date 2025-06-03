@@ -54,6 +54,11 @@ qa_chain = (
     | StrOutputParser()
 )
 
-question = "Most consecutive victories yale or harvard?"
-answer = qa_chain.invoke(question)
-print(answer)
+while True:
+    question = input("\nYou: ")
+    if question.lower() in ["exit", "quit"]:
+        print("Exiting chat.")
+        break
+
+    answer = qa_chain.invoke(question)
+    print(f"Assistant: {answer}")
