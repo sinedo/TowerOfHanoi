@@ -1,79 +1,110 @@
-# Retrieval-Augmented Generation
-
-## 1. Setup
-
-To setup the LangChain RAG system, the instructions on https://python.langchain.com/v0.2/docs/tutorials/local_rag/ are followed. This includes running the following commands in the docker container:
-
-```bash
-# General purpose model
-ollama pull llama3.1:8b
-# Text embedding model
-ollama pull nomic-embed-text
-# Document loading, retrieval methods and text splitting
-pip3 install -U langchain langchain_community
-# Local vector store via Chroma
-pip3 install -U langchain_chroma
-# Local inference and embeddings via Ollama
-pip3 install -U langchain_ollama
-# Web Loader
-pip3 install -U beautifulsoup4
-```
-
-To get `langchain_chroma` working, you must perform the following commands
-
-```bash
-# remove python3 version of protobuf to use python3.8 version instead
-rm -r /usr/lib/python3/dist-packages/google/protobuf/
-# make sure protobuf is installed
-pip3 install protobuf
-pip3 install sqlite3-binary
-```
-
-Before executing any commands, initialize `conda` using
+install conda from /opt/conda/bin  
 
 ```bash
 /opt/conda/bin/conda init
 ```
 
-This command could be added to the `Dockerfile`. After that, the environment can be activated using `conda activate llm_env`.
+create and activate new conda environment 
 
-Then execute the following commands in `python3` after switching to the conda environment:
+``` bash 
+conad create -n rag_env python=3.11
+conad activate rag_env
 
-```python
-# set sqlite3 to pysqlite3, to make the version compatible
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
-# Import an example document
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
-data = loader.load()
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-all_splits = text_splitter.split_documents(data)
-
-# Initialize a vector store
-from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
-
-local_embeddings = OllamaEmbeddings(model="nomic-embed-text")
-
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=local_embeddings)
 ```
 
-## 2. Creating a knowledge base
+install python packages.
 
-## 3. Evaluation
+``` bash
+# Document loading, retrieval methods and text splitting
+pip install -qU langchain langchain_community
 
-### Who is the current pope?
+# Local vector store via Chroma
+pip install -qU langchain_chroma
+pip install -qU langchain_ollama
+pip install -qU beautifulsoup4
 
-#### Base Model
+```
+now run the python script
+``` bash
+python3 rowing_rag.py
 
-As of today, November 2, 2023, the current Pope is **Pope Francis**.
+```
 
-He was elected in March 2013 and continues to lead the Catholic Church.
+## Comparison 
 
-You can find more information about him and the Vatican on the official Vatican website: [https://www.vatican.va/](https://www.vatican.va/)
+### The question "who is faster yale or harvard" was given to both the native gemma3:4b and the gemma3:4b+rag.
+
+#### Native gemma3:4b
+
+**Answer:**
+
+<SOLUTION>Based on recent data and rankings, Yale is generally considered the faster school academically. Yale has a significantly higher graduation rate and a faster pace of completion for its degrees compared to Harvard.  
+
+However, both are incredibly prestigious universities!  
+
+Do you want me to elaborate on specific metrics that demonstrate this difference? 
+
+#### Rag: gemma3:4b
+
+**Answer:**
+
+<SOLUTION>Yale is faster. The context states Yale holds the upstream course record with a time of 18:35.8, while Harvard’s record is 18:22.4.
+
+---
+### The question "who won more consecutive regattas ?" was given to both the native gemma3:4b and the gemma3:4b+rag.
+
+#### Native gemma3:4b
+
+**Answer:**
+
+<SOLUTION>Please provide me with the context! I need the text you’re referring to in order to answer the question about who won more consecutive regattas.
+
+#### Rag: gemma3:4b
+
+**Answer:**
+
+<SOLUTION>Harvard won more consecutive regattas, winning 18 consecutively from 1963 to 1980.
+
+
+---
+### The question "who won the last rowing regatta yale or harvard ? (2024)" was given to both the native gemma3:4b and the gemma3:4b+rag.
+
+#### Native gemma3:4b
+
+**Answer:**
+
+<SOLUTION> As of today, November 2, 2024, Harvard won the 2024 Harvard-Yale Regatta.  
+
+You can find the full results here: https://harvardcrimson.com/news/2024/09/29/harvard-beats-yale-in-annual-rowing-race/  
+
+#### Rag: gemma3:4b
+
+**Answer:**
+
+<SOLUTION> The text doesn’t provide information about the 2024 Yale-Harvard Regatta. It states there was no regatta in 2020 due to the COVID-19 pandemic, and doesn’t offer any details about recent races.
+
+
+### Analysis:
+
+Both queries were wrapped in a bigger prompts
+``` 
+#without rag
+You are a helpful assistant. If unsure, say you don’t know.
+question: {question}
+
+#with rag
+You are a helpful assistant. Use the context below to answer the question.
+If unsure, say you don’t know.
+
+<context>
+{context}
+</context>
+
+Question: {question}
+"""
+
+``` 
+
+The system with the rag correctly reads most of the data and answers with the context of the input files. However it did not read the tables well, even if specifically prompted and therefore fails to answer the last question while the native model did answer it correctly but provided a dummy link
+
+When asked about facts not mentioned in the documents it fails to give an answer. Who is the current pope was answered with i dont know, while the native model answered with the outdated info "francis" => prompting can be done better
