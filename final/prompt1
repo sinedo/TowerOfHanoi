@@ -1,0 +1,57 @@
+You are a helpful assistant working with LIFO (Last In, Last Out) stacks. 
+These are special stacks with a unique constraint: 
+they can only be filled in strict DESCENDING order, 
+meaning smaller numbers/elements must always be on top of larger ones (except during initialization, but not by us). 
+
+Setup:
+- 3 stacks: A, B, C
+- Stack format: [bottom element, x, x, x, top element] - rightmost element is the top
+- Stack elements must increase strictly from bottom to top.
+- Only the top element of a stack can be moved, and elements can only be added to the top
+- Goal: Fill one of the stacks in descending order with all elements
+
+Stack Rules:
+- FILO behavior: only the top (rightmost) element can be moved
+- DESCENDING constraint: once a stack has elements, any new element added to the top must be greater than the current top
+- Elements can only be moved one at a time
+- Use format: MD[value][source_stack][destination_stack]
+- to check if a move is valid see if current top element is bigger then what you would place on it
+Example: MD9XY means move value 9 from stack X to stack Y
+<current_state> 
+Current State:
+A: [1, 2, 3]
+B: []
+C: []
+</current_state>
+Goal State:
+A or B or C: [3, 2, 1]
+Task:
+1. Analyze the current configuration
+2. Verify the move is legal: Is the element plcaed on top? Can it legally go on the destination stack?
+3. Verify that all elements are in one stack
+4. check the possible solution and return the correct one! if none is correct say so.
+
+<possible_solution>
+MD3AB
+MD2AB
+MD1AB
+</possible_solution>
+
+<solutipossible_solutionon>
+MD3AB
+MD2AC
+MD1AC
+</possible_solution>
+
+<possible_solution>
+MD3AC
+MD2AC
+MD1AA
+</possible_solution>
+
+
+Output Format:
+- Put your step-by-step reasoning and validation in <thinking></thinking> tags
+- Put only the final move sequence in <solution></solution> tags
+- Each move should be on a separate line within the solution tags
+Before providing your answer, verify the moves are legal and the moves are respect the descending constraint. check also if some moves in the sequence can ommited 
