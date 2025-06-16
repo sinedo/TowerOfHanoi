@@ -13,7 +13,7 @@ def extract_solution_block(output: str) -> str:
 
 
 
-MODEL_NAME = "gemma3:4b"
+MODEL_NAME = "gemma3:12b"
 NUM_ATTEMPTS = 10 # for first prompt
 
 
