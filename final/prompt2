@@ -37,7 +37,7 @@ MD2AB
 MD1AB
 </possible_solution>
 
-<solutipossible_solutionon>
+<possible_solution>
 MD3AB
 MD2AC
 MD1AC
@@ -48,7 +48,6 @@ MD3AC
 MD2AC
 MD1AA
 </possible_solution>
-
 
 Output Format:
 - Put your step-by-step reasoning and validation in <thinking></thinking> tags

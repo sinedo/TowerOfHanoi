@@ -13,7 +13,7 @@ def extract_solution_block(output: str) -> str:
 
 
 
-MODEL_NAME = "gemma3:12b"
+MODEL_NAME = "gemma3:4b"
 NUM_ATTEMPTS = 10 # for first prompt
 
 
@@ -23,7 +23,6 @@ A: [1]
 B: []
 C: [3,2]
 </current_state>
-
 """
 
 prompt_1_template = ChatPromptTemplate.from_template("""
@@ -40,25 +39,24 @@ Setup:
 - Goal: Fill one of the stacks in descending order with all elements
 
 Stack Rules:
-- FILO behavior: only the top (rightmost) element can be moved
+- LIFO behavior: only the top (rightmost) element can be moved
 - DESCENDING constraint: once a stack has elements, any new element added to the top must be greater than the current top
 - Elements can only be moved one at a time
 - Use format: MD[value][source_stack][destination_stack]
 - to check if a move is valid see if current top element is bigger then what you would place on it
-Example: MD3AB means move value 3 from stack A to stack B
+Example: MD9XY means move value 9 from stack X to stack Y
 {current_state}
 Goal State:
 A or B or C: [3, 2, 1]
 Task:
 1. Analyze the current configuration
-2. Verify the move is legal: Is the element plcaed on top? Can it legally go on the destination stack?
-3. Verify that all elements are in one stack
-
+2. Determine the moves to progress toward the goal
+3. Verify the move is legal: Is the element plcaed on top? Can it legally go on the destination stack?
 Output Format:
 - Put your step-by-step reasoning and validation in <thinking></thinking> tags
 - Put only the final move sequence in <solution></solution> tags
 - Each move should be on a separate line within the solution tags
-Before providing your answer, verify the moves are legal and the moves are respect the descending constraint.
+Before providing your answer, verify the moves are legal and the moves are respect the descending constraint. check also if some moves in the sequence can ommited 
 """)
 
 prompt_2_template = ChatPromptTemplate.from_template("""
@@ -75,7 +73,7 @@ Setup:
 - Goal: Fill one of the stacks in descending order with all elements
 
 Stack Rules:
-- FILO behavior: only the top (rightmost) element can be moved
+- LIFO behavior: only the top (rightmost) element can be moved
 - DESCENDING constraint: once a stack has elements, any new element added to the top must be greater than the current top
 - Elements can only be moved one at a time
 - Use format: MD[value][source_stack][destination_stack]
@@ -95,7 +93,9 @@ Task:
 Output Format:
 - Put your step-by-step reasoning and validation in <thinking></thinking> tags
 - Put only the final move sequence in <solution></solution> tags
-Before providing your answer, verify the moves are legal and the moves are respect the descending constraint. check also if some moves in the sequence can ommited
+- Each move should be on a separate line within the solution tags
+- check if the correct solution is optimal and legal
+Before providing your answer, verify the moves are legal and the moves are respect the descending constraint. check also if some moves in the sequence can be ommited 
 """)
 
 llm = ChatOllama(model=MODEL_NAME)
