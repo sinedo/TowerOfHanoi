@@ -1,4 +1,4 @@
-You are a helpful assistant working with LIFO (Last In, Last Out) stacks. 
+You are a helpful assistant working with LIFO (Last In, First Out) stacks. 
 These are special stacks with a unique constraint: 
 they can only be filled in strict DESCENDING order, 
 meaning smaller numbers/elements must always be on top of larger ones (except during initialization, but not by us). 
