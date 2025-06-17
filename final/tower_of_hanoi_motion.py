@@ -479,6 +479,7 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
         x_offset_angle = -0.02
     """
     target_angle=-55
+    x_offset_angle = -0.015
     
 
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
@@ -935,14 +936,16 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     elif target_name == "green_cube":
         position_offset = [0.0, 0.0, -0.05]
 
+    
     if goal_name == "blue_cube":
         goal_offset = [0.0, 0.0, 0.01]
     elif goal_name == "red_cube":
-        goal_offset = [0.0, 0.0, 0.02]
+        goal_offset = [0.0, 0.0, 0.015]
     elif goal_name == "green_cube":
         goal_offset = [0.0, 0.0, 0.02]
     elif goal_name == "ground":
         goal_offset = [0.0, 0.0, 0.01]
+    
 
 
     
@@ -1308,7 +1311,10 @@ if __name__ == "__main__":
 
     
     # Home position
+    #original:
     #home_position = [-0.03834952, -0.84062147, 1.26093221, 0.00613592, 1.97576725, -0.00460194]
+
+    #Adjusted home position to avoid inverse kinematics issues
     HOME_POSITION = [-0.03834952, -0.44062147, 1.06093221, 0.00613592, 1.77576725, -0.00460194]
     
     print("=== Starting Pick and Place Operation ===")
@@ -1327,7 +1333,7 @@ if __name__ == "__main__":
         rospy.sleep(2.0)
 
 
-        target_information, goal_information = plan_motion("MD1CB")
+        target_information, goal_information = plan_motion("MD1CA")
         print(f"target_information: {target_information}")
         print(f"goal_information: {goal_information}")
 
