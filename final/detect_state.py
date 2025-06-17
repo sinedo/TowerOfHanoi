@@ -85,7 +85,6 @@ def get_cube_stack_state(cube_names, cube_sizes):
                 i = np.squeeze(res[0])
                 current_state[j,k] = i
                 k+=1
-            break
             j += 1
 
     return current_state + 1
