@@ -14,7 +14,7 @@ def extract_solution_block(output: str) -> str:
 MODEL_NAME = "gemma3:12b"
 NUM_ATTEMPTS = 5
 
-with open("/root/catkin_ws/src/om_position_controller/scripts/current_state.txt") as file:
+with open("/root/catkin_ws/src/om_position_controller/TowerOfHanoi/final/current_state.txt") as file:
     content = file.readlines()[-3:]
 
 peg_A = [int(float(x)) for x in content[0].split(',') if float(x) != 0.0]
@@ -150,3 +150,9 @@ if solutions:
     print(final_response)
 else:
     print("No valid solutions collected to evaluate.")
+
+
+solution = extract_solution_block(final_response)
+
+with open("next_move.txt", "w") as f:
+    f.write(solution)
