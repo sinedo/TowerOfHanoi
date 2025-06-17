@@ -1,6 +1,8 @@
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+import numpy as np
+
 
 import time
 
@@ -13,15 +15,25 @@ def extract_solution_block(output: str) -> str:
 
 
 
-MODEL_NAME = "gemma3:12b"
+MODEL_NAME = "gemma3:4b"
 NUM_ATTEMPTS = 10 # for first prompt
 
+with open ("/root/catkin_ws/src/om_position_controller/scripts/current_state.txt") as file:
+    content = file.readlines()[-3:]
 
-current_state_block = """<current_state> 
+
+
+#peg_A = np.nonzero(eval("["+content[0]+"]"))
+peg_A = [int(float(x)) for x in content[0].split(',') if float(x) != 0.0]
+peg_B = [int(float(x)) for x in content[1].split(',') if float(x) != 0.0]
+peg_C = [int(float(x)) for x in content[2].split(',') if float(x) != 0.0]
+
+
+current_state_block = f"""<current_state> 
 Current State:
-A: [1]
-B: []
-C: [3,2]
+A: {peg_A}
+B: {peg_B}
+C: {peg_C}
 </current_state>
 """
 
@@ -129,3 +141,4 @@ if solutions:
     print(final_response)
 else:
     print("No solutions collected to validate.")
+    

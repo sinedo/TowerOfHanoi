@@ -14,6 +14,8 @@ from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import tf
 import matplotlib.pyplot as plt
+import geometry_msgs.msg
+from geometry_msgs.msg import TransformStamped
 
 def get_cube_position(cube_name, timeout=5.0):
     """Get position of a cube by its TF frame name"""
@@ -67,9 +69,6 @@ def get_cube_stack_state(cube_names, cube_sizes):
                 stacked[min_ind[i]] = min_ind[j]
 
     current_state = np.zeros((nr_cubes, nr_cubes)) - 1
-    print("current state =================")
-    print(stacked)
-    print(current_state)
 
     j = 0
     # find all occurences of -1 (cubes on ground)
@@ -89,4 +88,5 @@ def get_cube_stack_state(cube_names, cube_sizes):
 
     return current_state + 1
 
-print(get_cube_stack_state(CUBE_NAMES, CUBE_SIZES))
+for line in get_cube_stack_state(CUBE_NAMES, CUBE_SIZES):
+    print(*line, sep=",")
