@@ -1274,22 +1274,6 @@ def plan_motion(instruction):
     return target_information, goal_information
 
 
-
-            
-
-        
-
-
-
-
-
-
-
-
-
-    
-
-
 if __name__ == "__main__":
 
     
@@ -1332,8 +1316,10 @@ if __name__ == "__main__":
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
 
-
-        target_information, goal_information = plan_motion("MD1CA")
+        with open("/root/catkin_ws/src/om_position_controller/TowerOfHanoi/final/next_move.txt") as f: 
+            instruction = f.readlines()[0]
+        
+        target_information, goal_information = plan_motion(instruction)
         print(f"target_information: {target_information}")
         print(f"goal_information: {goal_information}")
 
