@@ -14,14 +14,14 @@ def extract_solution_block(output: str) -> str:
 MODEL_NAME = "gemma3:12b"
 NUM_ATTEMPTS = 5
 
-with open("/root/catkin_ws/src/om_position_controller/scripts/current_state.txt") as file:
+with open("current_state.txt") as file:
     content = file.readlines()[-3:]
 
 peg_A = [int(float(x)) for x in content[0].split(',') if float(x) != 0.0]
 peg_B = [int(float(x)) for x in content[1].split(',') if float(x) != 0.0]
 peg_C = [int(float(x)) for x in content[2].split(',') if float(x) != 0.0]
 
-current_state_block = f"""<current_state> 
+current_state_block = f"""<current_state>
 Current State:
 A: {peg_A}
 B: {peg_B}
@@ -94,7 +94,7 @@ You are a strict and logical assistant evaluating multiple candidate solutions t
 
 ## Goal:
 
-From the possible solutions, identify the **shortest valid** one that ends with **[3, 2, 1]** in **one** stack (A, B, or C).  
+From the possible solutions, identify the **shortest valid** one that ends with **[3, 2, 1]** in **one** stack (A, B, or C).
 Reject any sequence that:
 - Violates move legality
 - Doesn’t result in a stack with [3, 2, 1]
