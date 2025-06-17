@@ -1316,7 +1316,7 @@ if __name__ == "__main__":
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
 
-        with open("/root/catkin_ws/src/om_position_controller/TowerOfHanoi/final/next_move.txt") as f: 
+        with open("next_move.txt") as f: 
             instruction = f.readlines()[0]
         
         target_information, goal_information = plan_motion(instruction)
