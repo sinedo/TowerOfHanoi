@@ -16,7 +16,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - $HOME/.Xauthority:/root/.Xauthority:rw
       - /dev:/dev
-      - /home/doni/Documents/tuwien/RobotLearning/dolume:/workspace/Docker_volume:rw
+      - ../../..:/workspace/Docker_volume:rw
     device_cgroup_rules:
       - "c 81:* rmw"
       - "c 189:* rmw"
