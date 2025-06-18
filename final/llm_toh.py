@@ -13,8 +13,8 @@ def extract_solution_block(output: str) -> str:
         return None
     return output[start + len("<solution>"):end].strip()
 
-MODEL_NAME = "gemma3:12b"
-NUM_ATTEMPTS = 1
+MODEL_NAME = "qwen3:14b"
+NUM_ATTEMPTS = 3
 while True:
     detect_state.main()
 
@@ -87,7 +87,9 @@ while True:
     </thinking>
 
     <solution>
-    Put only the final legal move sequence here, one move per line.
+    ALWAYS INCLUDE THE SOLUTION TAGS <solution> </solution> and never change them 
+    Put only the final legal move sequence here between the solution tags. 
+    seperate the moves by linebreaks
     </solution>
     """)
 
@@ -100,7 +102,7 @@ while True:
     - Each stack holds integers in **strict descending order** from bottom to top.
     - You may only move the **top** element of a stack.
     - You may only add an element to a stack if it is **smaller** than the current top element.
-    - Use move format: `MD[value][source][destination]` (e.g. MD3AB = move 3 from A to B).
+    - Use move format: `MD[value][source][destination]` (e.g. MD2BC = move 2 from B to C).
 
     ## Goal:
 
