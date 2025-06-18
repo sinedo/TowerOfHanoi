@@ -13,7 +13,7 @@ def extract_solution_block(output: str) -> str:
         return None
     return output[start + len("<solution>"):end].strip()
 
-MODEL_NAME = "qwen3:14b"
+MODEL_NAME = "qwen3:8b"
 NUM_ATTEMPTS = 3
 while True:
     detect_state.main()
