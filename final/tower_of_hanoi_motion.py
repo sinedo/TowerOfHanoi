@@ -19,13 +19,16 @@ import itertools
 
 from tf.transformations import euler_from_matrix, euler_matrix
 
+
+
+
 class DMPMotionGenerator:
     def __init__(self, urdf_path, mesh_path=None, joint_names=None, base_link="world", end_effector_link="end_effector_link"):
         print("Initializing DMPMotionGenerator for Gazebo...")
         self.urdf_path = urdf_path
         self.mesh_path = mesh_path
         self.kin = self._load_kinematics(urdf_path, mesh_path)
-        
+
         self.joint_names = joint_names or ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
         self.gripper_joint_names = ["gripper", "gripper_sub"]
         self.base_link = base_link
@@ -34,7 +37,7 @@ class DMPMotionGenerator:
         self.dmp = None
         self.IK_joint_trajectory = None
         self.gripper_trajectory = None
-        
+
         if not rospy.core.is_initialized():
             rospy.init_node('dmp_motion_generator', anonymous=True)
 
@@ -45,14 +48,14 @@ class DMPMotionGenerator:
     def learn_from_rosbag(self, bag_path, joint_topic, dt=None, n_weights=10):
         transforms, joint_trajectory, gripper_trajectory, time_stamp = self._process_rosbag(bag_path, joint_topic)
         self.gripper_trajectory = gripper_trajectory
-        
+
         print(f"Transforms shape: {transforms.shape}")
         Y = ptr.pqs_from_transforms(transforms[10:,:,:])
         if dt is None:
             dt = 1/self.frequency
         self.dmp = CartesianDMP(execution_time=max(time_stamp), dt=dt, n_weights_per_dim=n_weights)
         self.dmp.imitate(time_stamp[10:], Y)
-        
+
         return Y, transforms, joint_trajectory, gripper_trajectory
 
     def _process_rosbag(self, bag_path, joint_topic):
@@ -60,7 +63,7 @@ class DMPMotionGenerator:
         joint_trajectory = []
         gripper_trajectory = []
         time_stamp = []
-        
+
         print(f"Reading bag file: {bag_path}")
         bag = rosbag.Bag(bag_path)
         for topic, msg, t in bag.read_messages(topics=[joint_topic]):
@@ -70,25 +73,25 @@ class DMPMotionGenerator:
             gripper_trajectory.append(gripper_pos)
 
             transforms.append(self.chain.forward(joint_pos))
-            time_stamp.append(msg.header.stamp.to_sec())    
+            time_stamp.append(msg.header.stamp.to_sec())
         bag.close()
-        
+
         transforms = np.array(transforms)
         joint_trajectory = np.array(joint_trajectory)
         gripper_trajectory = np.array(gripper_trajectory)
         time_stamp = np.array(time_stamp)
-        
+
         dt = []
         for i in range(1, time_stamp.shape[0]):
             dt.append(time_stamp[i]- time_stamp[i-1])
         self.frequency = 1/ np.average(np.array(dt))
-        
+
         positions = np.array([T[:3, 3] for T in transforms])
         mask, _ = self.remove_outliers_mad(positions, threshold=5.0)
-        
+
         filtered_time = time_stamp[mask]
         normalized_time = filtered_time - filtered_time[0]
-        
+
         return transforms[mask], joint_trajectory[mask], gripper_trajectory[mask], normalized_time
 
     def remove_outliers_mad(self, data, threshold=3.5):
@@ -103,19 +106,19 @@ class DMPMotionGenerator:
         print(f"Generating trajectory")
         if self.dmp is None:
             raise ValueError("No DMP model available. Learn or load a model first.")
-            
+
         if start_y is not None:
             self.dmp.start_y = start_y
             print(f"Using custom start: {start_y}")
         else:
             print(f"Using default start: {self.dmp.start_y}")
-            
+
         if goal_y is not None:
             self.dmp.goal_y = goal_y
             print(f"Using custom goal: {goal_y}")
         else:
             print(f"Using default goal: {self.dmp.goal_y}")
-        
+
         T, Y = self.dmp.open_loop()
         trajectory = ptr.transforms_from_pqs(Y)
         return T, trajectory
@@ -178,11 +181,11 @@ class DMPMotionGenerator:
             rospy.logerr(f"Error loading DMP data from {filepath}: {e}")
             self.dmp = None
             self.gripper_trajectory = None
-    
+
     def compute_IK_trajectory(self, trajectory, time_stamp, starting_joint_config = None, q0=None, subsample_factor=1):
         if q0 is None:
             q0 = np.array([-0.03834952, -0.84062147, 1.26093221, 0.00613592, 1.97576725, -0.00460194])
-        
+
         if subsample_factor > 1:
             subsampled_trajectory = trajectory[::subsample_factor]
             subsampled_time_stamp = time_stamp[::subsample_factor]
@@ -193,17 +196,17 @@ class DMPMotionGenerator:
             subsampled_trajectory = trajectory
             subsampled_time_stamp = time_stamp
             subsampled_gripper_trajectory = self.gripper_trajectory
-        
+
         print(f"Solving inverse kinematics for {len(subsampled_trajectory)} points...")
-        
+
         start_time = time.time()
-        
+
         random_state = np.random.RandomState(0)
         joint_trajectory = self.chain.inverse_trajectory(
             subsampled_trajectory, random_state=random_state, orientation_weight=1.0)
-            
+
         print(f"IK solved in {time.time() - start_time:.2f} seconds")
-        
+
         return subsampled_trajectory, joint_trajectory, subsampled_gripper_trajectory, subsampled_time_stamp
 
 
@@ -211,16 +214,16 @@ class DMPMotionGenerator:
         print(f"Plotting trajectory...")
         fig = pv.figure()
         fig.plot_transform(s=0.3)
-        
+
         graph = fig.plot_graph(
             self.kin.tm, "world", show_visuals=False, show_collision_objects=True,
             show_frames=True, s=0.1, whitelist=[self.base_link, self.end_effector_link])
 
         fig.plot_transform(trajectory[0], s=0.15)
         fig.plot_transform(trajectory[-1], s=0.15)
-        
+
         pv.Trajectory(trajectory, s=0.05).add_artist(fig)
-        
+
         fig.view_init()
         fig.animate(
             animation_callback, len(trajectory), loop=True,
@@ -232,36 +235,36 @@ class GazeboTrajectoryPublisher:
     def __init__(self, joint_names=None, gripper_joint_names=None):
         if not rospy.core.is_initialized():
             rospy.init_node("gazebo_trajectory_publisher", anonymous=True)
-        
+
         self.joint_names = joint_names or ["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"]
         self.gripper_joint_names = gripper_joint_names or ["gripper", "gripper_sub"]
-        
-        self.arm_pub = rospy.Publisher('/open_manipulator_6dof/arm_controller/command', 
+
+        self.arm_pub = rospy.Publisher('/open_manipulator_6dof/arm_controller/command',
                                      JointTrajectory, queue_size=10)
-        self.gripper_pub = rospy.Publisher('/open_manipulator_6dof/gripper_controller/command', 
+        self.gripper_pub = rospy.Publisher('/open_manipulator_6dof/gripper_controller/command',
                                          JointTrajectory, queue_size=10)
-        
+
         print(f"[Gazebo] Initialized publishers:")
         print(f"  - Arm: /open_manipulator_6dof/arm_controller/command")
         print(f"  - Gripper: /open_manipulator_6dof/gripper_controller/command")
-        
+
         rospy.sleep(1.0)
 
     def publish_trajectory(self, joint_trajectory, gripper_trajectory, timestamps, execute_time_factor=1.0):
         if len(joint_trajectory) == 0:
             rospy.logwarn("[Gazebo] Empty trajectory provided")
             return
-        
+
         print(f"[Gazebo] Publishing trajectory with {len(joint_trajectory)} points")
-        
+
         arm_msg = JointTrajectory()
         arm_msg.header.stamp = rospy.Time.now()
         arm_msg.joint_names = self.joint_names
-        
+
         gripper_msg = JointTrajectory()
         gripper_msg.header.stamp = rospy.Time.now()
         gripper_msg.joint_names = self.gripper_joint_names
-        
+
         for i in range(len(joint_trajectory)):
             arm_point = JointTrajectoryPoint()
             arm_point.positions = joint_trajectory[i].tolist()
@@ -271,7 +274,7 @@ class GazeboTrajectoryPublisher:
                 (timestamps[i] - timestamps[0]) * execute_time_factor
             )
             arm_msg.points.append(arm_point)
-            
+
             if gripper_trajectory is not None and i < len(gripper_trajectory):
                 gripper_point = JointTrajectoryPoint()
                 gripper_value = gripper_trajectory[i]
@@ -282,23 +285,23 @@ class GazeboTrajectoryPublisher:
                     (timestamps[i] - timestamps[0]) * execute_time_factor
                 )
                 gripper_msg.points.append(gripper_point)
-        
+
         print(f"[Gazebo] Publishing arm trajectory with {len(arm_msg.points)} points")
         self.arm_pub.publish(arm_msg)
-        
+
         if gripper_trajectory is not None and len(gripper_msg.points) > 0:
             print(f"[Gazebo] Publishing gripper trajectory with {len(gripper_msg.points)} points")
             self.gripper_pub.publish(gripper_msg)
         else:
             print(f"[Gazebo] No gripper trajectory to publish")
-        
+
         print(f"[Gazebo] Trajectory published successfully")
 
     def publish_single_trajectory(self, full_trajectory, timestamps, execute_time_factor=1.0):
         if full_trajectory.shape[1] >= 6:
             arm_traj = full_trajectory[:, :6]
             gripper_traj = full_trajectory[:, 6] if full_trajectory.shape[1] > 6 else None
-            
+
             self.publish_trajectory(arm_traj, gripper_traj, timestamps, execute_time_factor)
         else:
             rospy.logwarn(f"[Gazebo] Invalid trajectory shape: {full_trajectory.shape}")
@@ -306,23 +309,23 @@ class GazeboTrajectoryPublisher:
     def publish_home_position(self, home_position=None, execution_time=5.0):
         if home_position is None:
             home_position = [-0.03834952, -0.84062147, 1.26093221, 0.00613592, 1.97576725, -0.00460194]
-        
+
         print(f"[Gazebo] Publishing home position command...")
         print(f"[Gazebo] Home position: {home_position}")
         print(f"[Gazebo] Execution time: {execution_time} seconds")
-        
+
         arm_msg = JointTrajectory()
         arm_msg.header.stamp = rospy.Time.now()
         arm_msg.joint_names = self.joint_names
-        
+
         home_point = JointTrajectoryPoint()
         home_point.positions = home_position
         home_point.velocities = [0.0] * len(self.joint_names)
         home_point.accelerations = [0.0] * len(self.joint_names)
         home_point.time_from_start = rospy.Duration.from_sec(execution_time)
-        
+
         arm_msg.points.append(home_point)
-        
+
         self.arm_pub.publish(arm_msg)
         print(f"[Gazebo] Home position command published and latched")
 
@@ -344,7 +347,7 @@ def save_trajectory_data(joint_trajectory, timestamps, filepath):
 def load_trajectory_data(filepath):
     with open(filepath, 'rb') as f:
         data = pickle.load(f)
-    
+
     joint_trajectory = data['trajectory']
     timestamps = data['timestamps']
     print(f"[LOAD] Loaded trajectory from {filepath} (length={len(joint_trajectory)})")
@@ -355,12 +358,12 @@ def interpolate_joint_trajectory(joint_traj, time_stamps, target_freq=20.0):
     duration = time_stamps[-1] - time_stamps[0]
     num_samples = int(duration * target_freq)
     new_timestamps = np.linspace(time_stamps[0], time_stamps[-1], num_samples)
-    
+
     interp_traj = np.zeros((num_samples, num_joints))
     for i in range(num_joints):
         interpolator = interp1d(time_stamps, joint_traj[:, i], kind='linear', fill_value="extrapolate")
         interp_traj[:, i] = interpolator(new_timestamps)
-    
+
     return interp_traj, new_timestamps
 
 def get_cube_position(cube_name, timeout=5.0):
@@ -368,12 +371,12 @@ def get_cube_position(cube_name, timeout=5.0):
     print(f"Getting {cube_name} position...")
     if not rospy.core.is_initialized():
         rospy.init_node('tf_xyz_fetcher', anonymous=True)
-    
+
     listener = tf.TransformListener()
     try:
         print(f"Waiting for transform /world -> /{cube_name}...")
         listener.waitForTransform('/world', f'/{cube_name}', rospy.Time(0), rospy.Duration(timeout))
-        
+
         trans, rot = listener.lookupTransform('/world', f'/{cube_name}', rospy.Time(0))
         print(f"{cube_name} position: {trans}")
         return trans, rot
@@ -382,7 +385,7 @@ def get_cube_position(cube_name, timeout=5.0):
         return None
 
 def execute_home_position(publisher, HOME_POSITION):
-    
+
     print("\n=== Returning to Home Position ===")
     publisher.publish_home_position(
         home_position=HOME_POSITION,
@@ -398,7 +401,7 @@ def get_current_position():
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting linear move.")
         return False
-        
+
     current_transform = dmp_gen.chain.forward(current_joint_angles)
     position = current_transform[:3, 3]
     #start_orientation = ptr.pqs_from_transforms(current_transform)[3:]
@@ -416,7 +419,7 @@ def execute_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_information
     execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_information, execute_time_factor = execute_time_factor, visualize = visualize, move_gripper = False)
 
     position_delta = target_information["position"]-get_current_position()
-    
+
     move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="open", duration=4.0, visualize=visualize)
 
     approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_duration=3.0, grasp_duration=2.0, frequency=10.0, visualize=visualize)
@@ -436,7 +439,7 @@ def execute_place(dmp_gen, bag_path, dmp_save_path, publisher, target_informatio
     execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information, execute_time_factor = execute_time_factor, visualize = visualize, move_gripper = False)
 
     position_delta = goal_information["position"]-get_current_position()
-    
+
     move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="closed", duration=4.0, visualize=visualize)
 
     approach_and_drop_cube(dmp_gen, publisher, target_information, goal_information, approach_duration=3.0, drop_duration=2.0, frequency=10.0, visualize=visualize)
@@ -450,18 +453,18 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
                     execute_time_factor=5, visualize=False, move_gripper = False):
     """Execute a dmp motion (pick) with given parameters"""
     print(f"\n=== Executing pick motion ===")
-    
+
     # Learn from bag
     print(f"Learning place motion from bag: {bag_path}")
     Y, transforms, joint_traj, gripper_traj = dmp_gen.learn_from_rosbag(
-        bag_path, 
+        bag_path,
         '/gravity_compensation_controller/traj_joint_states'
     )
-    
+
     # Save DMP
     dmp_gen.save_dmp(dmp_save_path)
     print(f"PLACE DMP saved to: {dmp_save_path}")
-    
+
     # Get target position
     target_location = target_information["position"]
     target_name = target_information["name"]
@@ -473,13 +476,13 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
 
 
 
-    
+
     # Get start position
     current_joint_angles = get_current_joint_states()
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting linear move.")
         return False
-        
+
     current_transform = dmp_gen.chain.forward(current_joint_angles)
     start_position = current_transform[:3, 3]
     start_orientation = ptr.pqs_from_transforms(current_transform)[3:]
@@ -491,7 +494,7 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
 
     new_start[0:3] = start_position
     new_start[3:] = start_orientation
-    
+
     # Adjust goal position and orientation
 
     """
@@ -507,7 +510,7 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
     """
     target_angle=-55
     x_offset_angle = -0.015
-    
+
 
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
 
@@ -518,12 +521,12 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
     elif target_name == "green_cube":
         position_offset = [0.0, 0.0, 0.1]
 
-    
+
 
     print(f"Original goal: {new_goal[:3]}")
     new_goal[:3] = np.array(goal_location) + np.array(position_offset) #+ np.array([x_offset_angle, 0.0, 0.0])
     print(f"New goal: {new_goal[:3]}")
-    
+
     # Adjust goal orientation
     new_goal = ptr.transforms_from_pqs(new_goal)
     goal_orientation = create_orientation_in_xz_plane(target_angle)
@@ -532,11 +535,11 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
 
     # Generate trajectory
     T, trajectory = dmp_gen.generate_trajectory(start_y=new_start, goal_y=new_goal)
-    
+
     # Compute IK
     trajectory, IK_joint_trajectory, gripper_traj, T = dmp_gen.compute_IK_trajectory(
         trajectory, T, subsample_factor=2)
-    
+
     # Apply smoothing
     window_size = 25
     if len(IK_joint_trajectory) > window_size:
@@ -545,7 +548,7 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
 
         smoothed_IK_joint_trajectory = np.zeros_like(IK_joint_trajectory)
         for i in range(IK_joint_trajectory.shape[1]):
-            smoothed_IK_joint_trajectory[:, i] = np.convolve(IK_joint_trajectory[:, i], 
+            smoothed_IK_joint_trajectory[:, i] = np.convolve(IK_joint_trajectory[:, i],
                                                            np.ones(window_size)/window_size, mode='same')
 
         smoothed_IK_joint_trajectory[0,:] = original_start
@@ -567,17 +570,17 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
         print(f"Trajectory too short for smoothing (length {len(IK_joint_trajectory)})")
 
     # Visualize if requested
-    
+
     if visualize:
         dmp_gen.visualize_trajectory(trajectory, IK_joint_trajectory)
 
-    OPEN_GRIPPER_VAL = -0.007 
+    OPEN_GRIPPER_VAL = -0.007
     CLOSED_GRIPPER_VAL = 0.005
-    
+
     # Prepare full trajectory
     traj_length = min(IK_joint_trajectory.shape[0], len(gripper_traj) if gripper_traj is not None else IK_joint_trajectory.shape[0])
     IK_joint_trajectory = IK_joint_trajectory[:traj_length, :]
-    
+
     if move_gripper is True:
         if gripper_traj is not None:
             gripper_traj = gripper_traj[:traj_length]
@@ -596,27 +599,27 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
             gripper_traj = np.ones(traj_length)*CLOSED_GRIPPER_VAL
             full_trajectory = np.hstack((IK_joint_trajectory, -gripper_traj.reshape(-1, 1)))
 
-    
+
     # Interpolate trajectory
     interpolated_traj, interpolated_time = interpolate_joint_trajectory(
         full_trajectory, T[:traj_length], target_freq=100.0)
 
     # Execute trajectory
     print(f"[pick] Starting trajectory execution...")
-    
+
     # Clip trajectory to 95% of length to avoid oscillations in the learned motions
     clip_length = int(0.95 * len(interpolated_traj))
     arm_trajectory = interpolated_traj[:clip_length, :6]
     gripper_trajectory = interpolated_traj[:clip_length, 6]
-    
-    publisher.publish_trajectory(arm_trajectory, -gripper_trajectory, 
+
+    publisher.publish_trajectory(arm_trajectory, -gripper_trajectory,
                                interpolated_time, execute_time_factor=execute_time_factor)
-    
+
     # Wait for completion
     trajectory_execution_time = max(interpolated_time) * execute_time_factor
     print(f"[pick] Waiting {trajectory_execution_time:.2f} seconds for completion...")
     rospy.sleep(trajectory_execution_time + 2.0)
-    
+
     print(f"[pick] Motion completed successfully!")
     return True
 
@@ -626,28 +629,28 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
                     execute_time_factor=5, visualize=False, move_gripper = False):
     """Execute a motion (pick) with given parameters"""
     print(f"\n=== Executing pick motion ===")
-    
+
     # Learn from bag
     print(f"Learning pick motion from bag: {bag_path}")
     Y, transforms, joint_traj, gripper_traj = dmp_gen.learn_from_rosbag(
-        bag_path, 
+        bag_path,
         '/gravity_compensation_controller/traj_joint_states'
     )
-    
+
     # Save DMP
     dmp_gen.save_dmp(dmp_save_path)
     print(f"PICK DMP saved to: {dmp_save_path}")
-    
+
     # Get target position
     target_location = target_information["position"]
     target_name = target_information["name"]
-    
+
     # Get start position
     current_joint_angles = get_current_joint_states()
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting linear move.")
         return False
-        
+
     current_transform = dmp_gen.chain.forward(current_joint_angles)
     start_position = current_transform[:3, 3]
     start_orientation = ptr.pqs_from_transforms(current_transform)[3:]
@@ -659,7 +662,7 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
 
     new_start[0:3] = start_position
     new_start[3:] = start_orientation
-    
+
     # Adjust target position and orientation
 
     if target_location[2] < 0.05:
@@ -671,7 +674,7 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
     else:
         target_angle = -35
         x_offset_angle = -0.01
-    
+
 
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
 
@@ -682,12 +685,12 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
     elif target_name == "green_cube":
         position_offset = [0.0, 0.0, 0.065]
 
-    
+
 
     print(f"Original goal: {new_goal[:3]}")
     new_goal[:3] = np.array(target_location) + np.array(position_offset) + np.array([x_offset_angle, 0.0, 0.0])
     print(f"New goal: {new_goal[:3]}")
-    
+
     # Adjust goal orientation
     new_goal = ptr.transforms_from_pqs(new_goal)
     goal_orientation = create_orientation_in_xz_plane(target_angle)
@@ -696,11 +699,11 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
 
     # Generate trajectory
     T, trajectory = dmp_gen.generate_trajectory(start_y=new_start, goal_y=new_goal)
-    
+
     # Compute IK
     trajectory, IK_joint_trajectory, gripper_traj, T = dmp_gen.compute_IK_trajectory(
         trajectory, T, subsample_factor=2)
-    
+
     # Apply smoothing
     window_size = 25
     if len(IK_joint_trajectory) > window_size:
@@ -709,7 +712,7 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
 
         smoothed_IK_joint_trajectory = np.zeros_like(IK_joint_trajectory)
         for i in range(IK_joint_trajectory.shape[1]):
-            smoothed_IK_joint_trajectory[:, i] = np.convolve(IK_joint_trajectory[:, i], 
+            smoothed_IK_joint_trajectory[:, i] = np.convolve(IK_joint_trajectory[:, i],
                                                            np.ones(window_size)/window_size, mode='same')
 
         smoothed_IK_joint_trajectory[0,:] = original_start
@@ -731,14 +734,14 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
         print(f"Trajectory too short for smoothing (length {len(IK_joint_trajectory)})")
 
     # Visualize if requested
-    
+
     if visualize:
         dmp_gen.visualize_trajectory(trajectory, IK_joint_trajectory)
-    
+
     # Prepare full trajectory
     traj_length = min(IK_joint_trajectory.shape[0], len(gripper_traj) if gripper_traj is not None else IK_joint_trajectory.shape[0])
     IK_joint_trajectory = IK_joint_trajectory[:traj_length, :]
-    
+
     if move_gripper is True:
         if gripper_traj is not None:
             gripper_traj = gripper_traj/np.max(gripper_traj)*-0.007
@@ -751,34 +754,34 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
         if gripper_traj is not None:
             #gripper_traj = np.ones(traj_length)*gripper_traj[0]#/np.max(gripper_traj)*0.005
             #gripper_traj = gripper_traj[:traj_length]
-            
+
             gripper_traj = np.linspace(gripper_traj[0], -0.007, traj_length)
             full_trajectory = np.hstack((IK_joint_trajectory, -gripper_traj.reshape(-1, 1)))
         else:
             gripper_traj = np.ones(traj_length)*-0.007
             full_trajectory = np.hstack((IK_joint_trajectory, -gripper_traj.reshape(-1, 1)))
 
-    
+
     # Interpolate trajectory
     interpolated_traj, interpolated_time = interpolate_joint_trajectory(
         full_trajectory, T[:traj_length], target_freq=100.0)
 
     # Execute trajectory
     print(f"[pick] Starting trajectory execution...")
-    
+
     # Clip trajectory to 95% of length to avoid oscillations in the learned motions
     clip_length = int(0.95 * len(interpolated_traj))
     arm_trajectory = interpolated_traj[:clip_length, :6]
     gripper_trajectory = interpolated_traj[:clip_length, 6]
-    
-    publisher.publish_trajectory(arm_trajectory, -gripper_trajectory, 
+
+    publisher.publish_trajectory(arm_trajectory, -gripper_trajectory,
                                interpolated_time, execute_time_factor=execute_time_factor)
-    
+
     # Wait for completion
     trajectory_execution_time = max(interpolated_time) * execute_time_factor
     print(f"[pick] Waiting {trajectory_execution_time:.2f} seconds for completion...")
     rospy.sleep(trajectory_execution_time + 2.0)
-    
+
     print(f"[pick] Motion completed successfully!")
     return True
 
@@ -790,8 +793,8 @@ def get_current_joint_states(timeout=2.0):
     try:
         print("Waiting for joint states...")
         joint_states_msg = rospy.wait_for_message(
-            '/joint_states', 
-            JointState, 
+            '/joint_states',
+            JointState,
             timeout=timeout
         )
         # Assuming the first 6 joints are for the arm in the correct order
@@ -827,7 +830,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
 
     print(f"\n=== Initiating Approach and Grasp for '{target_name}' ===")
 
-    
+
 
     #Get current position
     current_joint_angles = get_current_joint_states()
@@ -880,7 +883,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
     if visualize:
         dmp_gen.visualize_trajectory(cartesian_approach_traj, arm_approach_traj)
 
-    OPEN_GRIPPER_VAL = -0.007 
+    OPEN_GRIPPER_VAL = -0.007
     CLOSED_GRIPPER_VAL = 0.005
 
     # During approach, gripper is open. Positive values close the gripper.
@@ -888,11 +891,11 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
 
     # --- 3. Phase 2: Generate Grasping Trajectory (Arm is static) ---
     num_grasp_steps = int(grasp_duration * frequency)
-    
+
     # Arm stays at the final position of the approach trajectory
     final_arm_pos = arm_approach_traj[-1]
     arm_grasp_traj = np.tile(final_arm_pos, (num_grasp_steps, 1))
-    
+
     # Gripper closes from OPEN_GRIPPER_VAL to CLOSED_GRIPPER_VAL.
     gripper_grasp_traj = np.linspace(OPEN_GRIPPER_VAL, CLOSED_GRIPPER_VAL, num_grasp_steps)
 
@@ -946,7 +949,7 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
 
     print(f"\n=== Initiating Approach and Drop for '{target_name}' ===")
 
-    
+
 
     #Get current position
     current_joint_angles = get_current_joint_states()
@@ -978,14 +981,14 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
         goal_offset = [0.0, 0.0, 0.01]
     """
     goal_offset = [0.0, 0.0, 0.0]
-    
 
 
-    
+
+
 
 
     goal_position = np.array(start_position)+position_offset +goal_offset
-   
+
     print(f"Current EE Position: {start_position}")
     print(f"Target EE Position: {goal_position}")
 
@@ -1015,7 +1018,7 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     if visualize:
         dmp_gen.visualize_trajectory(cartesian_approach_traj, arm_approach_traj)
 
-    OPEN_GRIPPER_VAL = -0.007 
+    OPEN_GRIPPER_VAL = -0.007
     CLOSED_GRIPPER_VAL = 0.005
 
     # During approach, gripper is closed. Positive values close the gripper.
@@ -1023,13 +1026,13 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
 
     # --- 3. Phase 2: Generate Grasping Trajectory (Arm is static) ---
     num_grasp_steps = int(drop_duration * frequency)
-    
+
     # Arm stays at the final position of the approach trajectory
     final_arm_pos = arm_approach_traj[-1]
     arm_grasp_traj = np.tile(final_arm_pos, (num_grasp_steps, 1))
-    
+
     # Gripper opens from CLOSED_GRIPPER_VAL to OPEN_GRIPPER_VAL.
-    
+
     gripper_grasp_traj = np.linspace(CLOSED_GRIPPER_VAL, OPEN_GRIPPER_VAL, num_grasp_steps)
 
     # --- 4. Combine Trajectories ---
@@ -1076,25 +1079,25 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting linear move.")
         return False
-        
+
     current_transform = dmp_gen.chain.forward(current_joint_angles)
     start_position = current_transform[:3, 3]
     start_orientation = current_transform[:3, :3]
-    print(f"Current EE Position: {start_position}") 
+    print(f"Current EE Position: {start_position}")
 
     # 3. Define the goal position
-    goal_position = start_position+np.array(target_position_delta) 
+    goal_position = start_position+np.array(target_position_delta)
     print(f"Target EE Position: {goal_position}")
 
     # 4. Generate the linear Cartesian trajectory
     num_steps = int(duration * frequency)
     cartesian_trajectory = np.zeros((num_steps, 4, 4))
-    
+
     for i in range(num_steps):
         # Linear interpolation for position
         alpha = i / (num_steps - 1.0)
         interp_position = (1 - alpha) * start_position + alpha * goal_position
-        
+
         # Build the full 4x4 transform for this step
         transform = np.eye(4)
         transform[:3, 3] = interp_position
@@ -1104,15 +1107,15 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
      # 5. Compute the Inverse Kinematics for the trajectory
     print(f"Solving IK for {num_steps} points in the linear path...")
     start_time = time.time()
-    
-    
+
+
     # Use the current joint angles as the initial guess for the IK solver
     joint_trajectory = dmp_gen.chain.inverse_trajectory(
-        cartesian_trajectory, 
+        cartesian_trajectory,
         initial_joint_angles=current_joint_angles,
         orientation_weight=1.0
     )
-    
+
     print(f"IK solved in {time.time() - start_time:.2f} seconds.")
 
     if joint_trajectory is None or len(joint_trajectory) == 0:
@@ -1122,10 +1125,10 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
 
     if visualize:
         dmp_gen.visualize_trajectory(cartesian_trajectory, joint_trajectory)
-        
+
     # 6. Publish the trajectory to Gazebo
     timestamps = np.linspace(0, duration, num_steps)
-    
+
 
     if gripper_status == "open":
         gripper_trajectory = np.ones(num_steps)*-0.007
@@ -1133,19 +1136,19 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
         gripper_trajectory = np.ones(num_steps)*0.005
     else:
         gripper_trajectory = np.zeros(num_steps)
-    
+
     print("Publishing linear trajectory to Gazebo...")
     publisher.publish_trajectory(
-        joint_trajectory, 
-        gripper_trajectory, 
-        timestamps, 
+        joint_trajectory,
+        gripper_trajectory,
+        timestamps,
         execute_time_factor=1.0  # Execute in real-time
     )
 
     # 7. Wait for the motion to complete
     print(f"Waiting {duration + 1.0:.2f} seconds for linear motion to complete...")
     rospy.sleep(duration + 1.0) # Add a small buffer
-    
+
     return True
 
 
@@ -1299,85 +1302,63 @@ def plan_motion(instruction):
 
         goal_information = {"name": cube_goal, "position": cube_goal_position}
 
-    
-
     return target_information, goal_information
 
+#Adjusted home position to avoid inverse kinematics issues
+HOME_POSITION = [-0.03834952, -0.44062147, 1.06093221, 0.00613592, 1.77576725, -0.00460194]
 
+# Configuration
+urdf_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/urdf/open_manipulator_6dof.urdf'
+mesh_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/meshes'
 
-            
+# Bag file paths
+pick_bag_path = '/root/catkin_ws/src/om_position_controller/recording/pick.bag'#'/root/catkin_ws/recordings_1905_new/pick_null_3.bag'#"/root/catkin_ws/recordings_14_05/pick_1.bag"#
+place_bag_path = '/root/catkin_ws/src/om_position_controller/recording/place.bag'  # Add your place bag path
 
-        
+# DMP save paths
+pick_dmp_path = '/root/catkin_ws/src/om_position_controller/recording/pick_motion.pkl'
+place_dmp_path = '/root/catkin_ws/src/om_position_controller/recording/place_motion.pkl'
 
+COORDINATES_A_LOCATION = [0.2, -0.12, 0.01]
+COORDINATES_B_LOCATION = [0.2, 0.0, 0.01]
+COORDINATES_C_LOCATION = [0.2, 0.12, 0.01]
 
+# Initialize components
+dmp_gen = DMPMotionGenerator(
+    urdf_path,
+    mesh_path,
+    base_link="world"
+)
 
+def main ():
 
-
-
-
-
-
-
-
-if __name__ == "__main__":
-
-    
-    # Configuration
-    urdf_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/urdf/open_manipulator_6dof.urdf'
-    mesh_path = '/root/catkin_ws/src/open_manipulator_friends/open_manipulator_6dof_description/meshes'
-    
-    # Bag file paths
-    pick_bag_path = '/root/catkin_ws/src/om_position_controller/recording/pick.bag'#'/root/catkin_ws/recordings_1905_new/pick_null_3.bag'#"/root/catkin_ws/recordings_14_05/pick_1.bag"#
-    place_bag_path = '/root/catkin_ws/src/om_position_controller/recording/place.bag'  # Add your place bag path
-    
-    # DMP save paths
-    pick_dmp_path = '/root/catkin_ws/src/om_position_controller/recording/pick_motion.pkl'
-    place_dmp_path = '/root/catkin_ws/src/om_position_controller/recording/place_motion.pkl'
-    
-
-
-
-    COORDINATES_A_LOCATION = [0.2, -0.12, 0.01]
-    COORDINATES_B_LOCATION = [0.2, 0.0, 0.01]
-    COORDINATES_C_LOCATION = [0.2, 0.12, 0.01]
-    
     # Home position
     #original:
     #home_position = [-0.03834952, -0.84062147, 1.26093221, 0.00613592, 1.97576725, -0.00460194]
 
-    #Adjusted home position to avoid inverse kinematics issues
-    HOME_POSITION = [-0.03834952, -0.44062147, 1.06093221, 0.00613592, 1.77576725, -0.00460194]
-    
     print("=== Starting Pick and Place Operation ===")
-    
+
     try:
-        # Initialize components
-        dmp_gen = DMPMotionGenerator(
-            urdf_path, 
-            mesh_path,
-            base_link="world"
-        )
 
-
-        
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
 
-        with open("next_move.txt") as f: 
+        with open("next_move.txt") as f:
             instruction = f.readlines()[0]
-        
+
         target_information, goal_information = plan_motion(instruction)
-        
+
         print(f"target_information: {target_information}")
         print(f"goal_information: {goal_information}")
 
         execute_pick(dmp_gen, pick_bag_path, pick_dmp_path, publisher, target_information, goal_information, execute_time_factor = 5, visualize = False)
         execute_place(dmp_gen, pick_bag_path, pick_dmp_path, publisher, target_information, goal_information, execute_time_factor = 5, visualize = False)
-
-        
     except rospy.ROSInterruptException:
         print("[Main] ROS interrupted.")
     except Exception as e:
         print(f"[Main] Error during pick and place operation: {e}")
         import traceback
         traceback.print_exc()
+
+if __name__ == "__main__":
+    main()

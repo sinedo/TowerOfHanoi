@@ -97,11 +97,14 @@ def get_cube_stack_state(cube_names, cube_sizes):
             result[2] = current_state[i]
     return result + 1
 
+def main():
+    out = ""
+    for line in get_cube_stack_state(CUBE_NAMES, CUBE_SIZES):
+        for value in line:
+            out += f"{value},"
+        out = f"{out[:-1]}\n"
+    with open("current_state.txt", "w+") as file:
+        file.write(out)
 
-out = ""
-for line in get_cube_stack_state(CUBE_NAMES, CUBE_SIZES):
-    for value in line:
-        out += f"{value},"
-    out = f"{out[:-1]}\n"
-with open("current_state.txt", "w+") as file:
-    file.write(out)
+if __name__ == "__main__":
+    main()
