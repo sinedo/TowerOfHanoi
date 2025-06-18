@@ -67,7 +67,7 @@ while True:
 
     - Move elements such that **one** of the stacks (A, B, or C) ends up holding **[3, 2, 1]** (in that order — 3 on bottom, 1 on top).
     - All moves must be legal and obey the rules above.
-    - Try to find a **valid sequence of moves** (not necessarily optimal).
+    - Try to find a **valid sequence of moves**
 
     {current_state}
 
@@ -111,6 +111,7 @@ while True:
     - Violates move legality
     - Doesn’t result in a stack with [3, 2, 1]
     - Uses invalid moves or unknown stack IDs
+    - Check if the order of the moves makes sense MD1AB or MD1BA, switch if necessery
 
     Your output should include:
 
@@ -123,7 +124,9 @@ while True:
     </thinking>
 
     <solution>
+    ALWAYS INCLUDE THE SOLUTION TAGS <solution> </solution> and never change them 
     Only output the **first move** of the best valid sequence.
+    
     </solution>
 
     {current_state}
