@@ -130,8 +130,8 @@ RUN pip install langchain_ollama
 RUN git clone https://github.com/sinedo/TowerOfHanoi.git
 
 # create symlinks
-RUN cd src/om_position_controller/ && ln -s ~/TowerOfHanoi TowerOfHanoi
-RUN ollama serve & exec ollama pull gemma3:12b
+RUN cd src/om_position_controller/ && ln -s /root/catkin_ws/TowerOfHanoi TowerOfHanoi
+RUN ollama serve & sleep 5 && exec ollama pull gemma3:12b
 # RUN ln -s src/om_position_controller/scripts/4_rs_detect_sim.py .
 
 RUN echo "roscd om_position_controller/scripts"
