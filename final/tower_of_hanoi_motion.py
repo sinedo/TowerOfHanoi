@@ -382,7 +382,7 @@ def get_cube_position(cube_name, timeout=5.0):
         return None
 
 def execute_home_position(publisher, HOME_POSITION):
-    # 2. RETURN TO HOME
+    
     print("\n=== Returning to Home Position ===")
     publisher.publish_home_position(
         home_position=HOME_POSITION,
@@ -392,36 +392,63 @@ def execute_home_position(publisher, HOME_POSITION):
     rospy.sleep(7.0)  # Wait for home position completion
     print("[Home] Home position reached!")
 
+def get_current_position():
+    # Get current position in cartesian space
+    current_joint_angles = get_current_joint_states()
+    if current_joint_angles is None:
+        print("ERROR: Could not get current robot joint angles. Aborting linear move.")
+        return False
+        
+    current_transform = dmp_gen.chain.forward(current_joint_angles)
+    position = current_transform[:3, 3]
+    #start_orientation = ptr.pqs_from_transforms(current_transform)[3:]
+    return position
+
 
 def execute_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information, execute_time_factor = 5, visualize = False):
+    """
+    Routine for picking a cube
+    """
+
 
     execute_home_position(publisher, HOME_POSITION)
 
     execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_information, execute_time_factor = execute_time_factor, visualize = visualize, move_gripper = False)
 
+    position_delta = target_information["position"]-get_current_position()
+    
+    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="open", duration=4.0, visualize=visualize)
+
     approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_duration=3.0, grasp_duration=2.0, frequency=10.0, visualize=visualize)
 
-    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[-0.05, 0, 0.1], gripper_status="closed", duration=4.0, visualize=visualize)
+    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[-0.05, 0, 0.2], gripper_status="closed", duration=4.0, visualize=visualize)
 
     execute_home_position(publisher, HOME_POSITION)
 
 
 def execute_place(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information, execute_time_factor = 5, visualize = False):
+    """
+    Routine for placing a cube
+    """
 
     execute_home_position(publisher, HOME_POSITION)
 
     execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information, execute_time_factor = execute_time_factor, visualize = visualize, move_gripper = False)
 
+    position_delta = target_information["position"]-get_current_position()
+    
+    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="open", duration=4.0, visualize=visualize)
+
     approach_and_drop_cube(dmp_gen, publisher, target_information, goal_information, approach_duration=3.0, drop_duration=2.0, frequency=10.0, visualize=visualize)
 
-    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[-0.05, 0, 0.1], gripper_status="open", duration=4.0, visualize=visualize)
+    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[-0.05, 0, 0.2], gripper_status="open", duration=4.0, visualize=visualize)
 
     execute_home_position(publisher, HOME_POSITION)
 
 
 def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information,
                     execute_time_factor=5, visualize=False, move_gripper = False):
-    """Execute a motion (pick) with given parameters"""
+    """Execute a dmp motion (pick) with given parameters"""
     print(f"\n=== Executing pick motion ===")
     
     # Learn from bag
@@ -633,17 +660,17 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
     new_start[0:3] = start_position
     new_start[3:] = start_orientation
     
-    # Adjust goal position and orientation
+    # Adjust target position and orientation
 
     if target_location[2] < 0.05:
         target_angle = -55
         x_offset_angle = -0.01
     elif target_location[2] < 0.9:
         target_angle = -45
-        x_offset_angle = -0.015
+        x_offset_angle = -0.01
     else:
         target_angle = -35
-        x_offset_angle = -0.02
+        x_offset_angle = -0.01
     
 
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
@@ -788,7 +815,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
     Args:
         dmp_gen (DMPMotionGenerator): The motion generator instance.
         publisher (GazeboTrajectoryPublisher): The trajectory publisher instance.
-        cube_name (str): The name of the target cube (e.g., 'blue_cube').
+        target_information (dict): Contains the name of the cube and its position.
         approach_duration (float): Time in seconds for the linear approach.
         grasp_duration (float): Time in seconds for the gripper to close.
         frequency (float): The frequency in Hz for the trajectory points.
@@ -802,7 +829,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
 
     
 
-
+    #Get current position
     current_joint_angles = get_current_joint_states()
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting grasp.")
@@ -812,16 +839,18 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
     start_position = current_transform[:3, 3]
     start_orientation = current_transform[:3, :3]
 
+
+    #Introduce offset accoding to which cube is grasped.
     if target_name == "blue_cube":
-        position_offset = [0.0, 0.0, -0.05]
+        position_offset = [0.0, 0.0, -0.025]
     elif target_name == "red_cube":
-        position_offset = [0.0, 0.0, -0.04]
+        position_offset = [0.0, 0.0, -0.03]
     elif target_name == "green_cube":
-        position_offset = [0.0, 0.0, -0.05]
+        position_offset = [0.0, 0.0, -0.03]
 
 
     goal_position = np.array(start_position)+position_offset # The goal is the cube's center
-    #goal_position[2] = goal_position[2]+offset_height
+
     print(f"Current EE Position: {start_position}")
     print(f"Target EE Position: {goal_position}")
 
@@ -864,8 +893,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
     final_arm_pos = arm_approach_traj[-1]
     arm_grasp_traj = np.tile(final_arm_pos, (num_grasp_steps, 1))
     
-    # Gripper closes from 0 (open) to 0.01 (closed).
-    # These values might need tuning for your specific gripper controller.
+    # Gripper closes from OPEN_GRIPPER_VAL to CLOSED_GRIPPER_VAL.
     gripper_grasp_traj = np.linspace(OPEN_GRIPPER_VAL, CLOSED_GRIPPER_VAL, num_grasp_steps)
 
     # --- 4. Combine Trajectories ---
@@ -903,7 +931,8 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     Args:
         dmp_gen (DMPMotionGenerator): The motion generator instance.
         publisher (GazeboTrajectoryPublisher): The trajectory publisher instance.
-        cube_name (str): The name of the target cube (e.g., 'blue_cube').
+        target_information (dict): contains the grasped cube's name and starting position.
+        goal_information (dict): contains information about the cube (or ground) the cube is dropped on (name and position).
         approach_duration (float): Time in seconds for the linear approach.
         drop_duration (float): Time in seconds for the gripper to open.
         frequency (float): The frequency in Hz for the trajectory points.
@@ -919,7 +948,7 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
 
     
 
-
+    #Get current position
     current_joint_angles = get_current_joint_states()
     if current_joint_angles is None:
         print("ERROR: Could not get current robot joint angles. Aborting grasp.")
@@ -929,14 +958,16 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     start_position = current_transform[:3, 3]
     start_orientation = current_transform[:3, :3]
 
+    # Adjust offset according to the grasped cube
     if target_name == "blue_cube":
-        position_offset = [0.0, 0.0, -0.05]
+        position_offset = [-0.01, 0.0, -0.01]
     elif target_name == "red_cube":
-        position_offset = [0.0, 0.0, -0.05]
+        position_offset = [-0.01, 0.0, -0.01]
     elif target_name == "green_cube":
-        position_offset = [0.0, 0.0, -0.05]
+        position_offset = [-0.01, 0.0, -0.01]
 
-    
+    #Adjust offset according to the cube or ground the cube is dropped on.
+    """
     if goal_name == "blue_cube":
         goal_offset = [0.0, 0.0, 0.01]
     elif goal_name == "red_cube":
@@ -945,14 +976,16 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
         goal_offset = [0.0, 0.0, 0.02]
     elif goal_name == "ground":
         goal_offset = [0.0, 0.0, 0.01]
+    """
+    goal_offset = [0.0, 0.0, 0.0]
     
 
 
     
 
 
-    goal_position = np.array(start_position)+position_offset +goal_offset# The goal is the cube's center
-    #goal_position[2] = goal_position[2]+offset_height
+    goal_position = np.array(start_position)+position_offset +goal_offset
+   
     print(f"Current EE Position: {start_position}")
     print(f"Target EE Position: {goal_position}")
 
@@ -985,7 +1018,7 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     OPEN_GRIPPER_VAL = -0.007 
     CLOSED_GRIPPER_VAL = 0.005
 
-    # During approach, gripper is open. Positive values close the gripper.
+    # During approach, gripper is closed. Positive values close the gripper.
     gripper_approach_traj = np.ones(num_approach_steps)*CLOSED_GRIPPER_VAL
 
     # --- 3. Phase 2: Generate Grasping Trajectory (Arm is static) ---
@@ -995,8 +1028,7 @@ def approach_and_drop_cube(dmp_gen, publisher, target_information, goal_informat
     final_arm_pos = arm_approach_traj[-1]
     arm_grasp_traj = np.tile(final_arm_pos, (num_grasp_steps, 1))
     
-    # Gripper closes from 0 (open) to 0.01 (closed).
-    # These values might need tuning for your specific gripper controller.
+    # Gripper opens from CLOSED_GRIPPER_VAL to OPEN_GRIPPER_VAL.
     
     gripper_grasp_traj = np.linspace(CLOSED_GRIPPER_VAL, OPEN_GRIPPER_VAL, num_grasp_steps)
 
@@ -1033,8 +1065,8 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
     Args:
         dmp_gen (DMPMotionGenerator): The motion generator instance.
         publisher (GazeboTrajectoryPublisher): The trajectory publisher instance.
-        cube_name (str): The name of the target cube (e.g., 'blue_cube').
-        offset_height (float): The height in meters above the cube's center.
+        target_position_delta (np.array): specifies the delta movement from the current position.
+        gripper_status (str): specifies if the gripper should be open or closed during the operation.
         duration (float): The desired time in seconds for the linear motion.
         frequency (float): The frequency in Hz for the trajectory points.
     """
@@ -1051,7 +1083,6 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
     print(f"Current EE Position: {start_position}") 
 
     # 3. Define the goal position
-    # The goal is offset_height meters directly above the cube
     goal_position = start_position+np.array(target_position_delta) 
     print(f"Target EE Position: {goal_position}")
 
@@ -1095,8 +1126,7 @@ def move_linearly_delta(dmp_gen, publisher, target_position_delta, gripper_statu
     # 6. Publish the trajectory to Gazebo
     timestamps = np.linspace(0, duration, num_steps)
     
-    # For this motion, we assume the gripper state does not change.
-    # We will create a placeholder of zeros for the gripper.
+
     if gripper_status == "open":
         gripper_trajectory = np.ones(num_steps)*-0.007
     elif gripper_status == "closed":
@@ -1132,7 +1162,7 @@ def create_orientation_in_xz_plane(angle_z_with_world_x_deg: float) -> Rotation:
                                   positive x-axis.
 
     Returns:
-        A scipy.spatial.transform.Rotation object for the computed orientation.
+        rotation matrix (np.array)
     """
     angle_rad = np.radians(angle_z_with_world_x_deg)
     cos_theta = np.cos(angle_rad)
@@ -1194,9 +1224,9 @@ def get_state():
 
     # Categorize cubes based on the y-coordinate
     for name, (x, y, z) in cube_positions.items():
-        if y < -0.04:
+        if y < -0.05:
             pos_a_temp.append((z, name))
-        elif -0.04 <= y <= 0.04:
+        elif -0.05 <= y <= 0.05:
             pos_b_temp.append((z, name))
         else: # y > 0.04
             pos_c_temp.append((z, name))
@@ -1254,11 +1284,11 @@ def plan_motion(instruction):
 
     if not goal_location_state:
         if goal_location == "A":
-            goal_position = [0.2, -0.12, 0.01]
+            goal_position = COORDINATES_A_LOCATION
         elif goal_location == "B":
-            goal_position = [0.2, 0.0, 0.01]
+            goal_position = COORDINATES_B_LOCATION
         else:
-            goal_position = [0.2, 0.12, 0.01]
+            goal_position = COORDINATES_C_LOCATION
 
         goal_information = {"name": "ground", "position": goal_position}
 
@@ -1287,8 +1317,6 @@ def plan_motion(instruction):
 
 
 
-    
-
 
 if __name__ == "__main__":
 
@@ -1308,7 +1336,9 @@ if __name__ == "__main__":
 
 
 
-
+    COORDINATES_A_LOCATION = [0.2, -0.12, 0.01]
+    COORDINATES_B_LOCATION = [0.2, 0.0, 0.01]
+    COORDINATES_C_LOCATION = [0.2, 0.12, 0.01]
     
     # Home position
     #original:
@@ -1332,8 +1362,12 @@ if __name__ == "__main__":
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
 
+        #with open("/root/catkin_ws/src/om_position_controller/TowerOfHanoi/final/next_move.txt") as f: 
+        #    instruction = f.readlines()[0]
+        
+        #target_information, goal_information = plan_motion(instruction)
 
-        target_information, goal_information = plan_motion("MD1CA")
+        target_information, goal_information = plan_motion("MD1BA")
         print(f"target_information: {target_information}")
         print(f"goal_information: {goal_information}")
 
