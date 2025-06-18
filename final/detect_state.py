@@ -40,7 +40,6 @@ CUBE_NAMES = [
     "blue_cube",
     "red_cube",
     "green_cube"
-
 ]
 
 CUBE_SIZES = [
@@ -68,7 +67,7 @@ def get_cube_stack_state(cube_names, cube_sizes):
 
                 stacked[min_ind[i]] = min_ind[j]
 
-    current_state = np.zeros((nr_cubes, nr_cubes)) - 1
+    current_state = np.zeros((3, nr_cubes)) - 1
 
     j = 0
     # find all occurences of -1 (cubes on ground)
@@ -85,15 +84,24 @@ def get_cube_stack_state(cube_names, cube_sizes):
                 current_state[j,k] = i
                 k+=1
             j += 1
+    result = np.zeros((3, nr_cubes)) - 1
 
-    return current_state + 1
+    for i in range(3):
+        if current_state[i, 0] == -1:
+            continue
+        if positions[int(current_state[i, 0]),1] < -0.04:
+            result[0] = current_state[i]
+        elif -0.04 <= positions[int(current_state[i, 0]),1] <= 0.04:
+            result[1] = current_state[i]
+        else: # y > 0.04
+            result[2] = current_state[i]
+    return result + 1
 
-while True:
-    out = ""
-    for line in get_cube_stack_state(CUBE_NAMES, CUBE_SIZES):
-        for value in line:
-            out += f"{value},"
-        out = f"{out[:-1]}\n"
-    with open("current_state.txt", "w+") as file:
-        file.write(out)
-    time.sleep(1)
+
+out = ""
+for line in get_cube_stack_state(CUBE_NAMES, CUBE_SIZES):
+    for value in line:
+        out += f"{value},"
+    out = f"{out[:-1]}\n"
+with open("current_state.txt", "w+") as file:
+    file.write(out)

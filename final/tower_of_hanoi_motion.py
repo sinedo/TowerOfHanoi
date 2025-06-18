@@ -1318,6 +1318,7 @@ def plan_motion(instruction):
 
 
 
+
 if __name__ == "__main__":
 
     
@@ -1357,7 +1358,7 @@ if __name__ == "__main__":
             base_link="world"
         )
 
-#
+
         
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
