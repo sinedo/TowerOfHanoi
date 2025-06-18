@@ -435,9 +435,9 @@ def execute_place(dmp_gen, bag_path, dmp_save_path, publisher, target_informatio
 
     execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_information, goal_information, execute_time_factor = execute_time_factor, visualize = visualize, move_gripper = False)
 
-    position_delta = target_information["position"]-get_current_position()
+    position_delta = goal_information["position"]-get_current_position()
     
-    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="open", duration=4.0, visualize=visualize)
+    move_linearly_delta(dmp_gen=dmp_gen, publisher=publisher, target_position_delta=[position_delta[0], position_delta[1], 0.0], gripper_status="closed", duration=4.0, visualize=visualize)
 
     approach_and_drop_cube(dmp_gen, publisher, target_information, goal_information, approach_duration=3.0, drop_duration=2.0, frequency=10.0, visualize=visualize)
 
@@ -844,7 +844,7 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
     if target_name == "blue_cube":
         position_offset = [0.0, 0.0, -0.025]
     elif target_name == "red_cube":
-        position_offset = [0.0, 0.0, -0.03]
+        position_offset = [0.0, 0.0, -0.04]
     elif target_name == "green_cube":
         position_offset = [0.0, 0.0, -0.03]
 
@@ -1363,12 +1363,11 @@ if __name__ == "__main__":
         publisher = GazeboTrajectoryPublisher()
         rospy.sleep(2.0)
 
-        #with open("/root/catkin_ws/src/om_position_controller/TowerOfHanoi/final/next_move.txt") as f: 
-        #    instruction = f.readlines()[0]
+        with open("next_move.txt") as f: 
+            instruction = f.readlines()[0]
         
-        #target_information, goal_information = plan_motion(instruction)
-
-        target_information, goal_information = plan_motion("MD1BA")
+        target_information, goal_information = plan_motion(instruction)
+        
         print(f"target_information: {target_information}")
         print(f"goal_information: {goal_information}")
 
