@@ -3,6 +3,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import numpy as np
 import time
+import detect_state
 
 def extract_solution_block(output: str) -> str:
     start = output.find("<solution>")
