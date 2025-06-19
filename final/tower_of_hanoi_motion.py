@@ -515,11 +515,11 @@ def execute_dmp_place(dmp_gen, bag_path, dmp_save_path, publisher, target_inform
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
 
     if target_name == "blue_cube":
-        position_offset = [0.0, 0.0, 0.1]
+        position_offset = [0.0, 0.0, 0.07]
     elif target_name == "red_cube":
         position_offset = [0.0, 0.0, 0.1]
     elif target_name == "green_cube":
-        position_offset = [0.0, 0.0, 0.1]
+        position_offset = [0.0, 0.0, 0.08]
 
 
 
@@ -679,11 +679,11 @@ def execute_dmp_pick(dmp_gen, bag_path, dmp_save_path, publisher, target_informa
     # Calculate offset based on which cube is moved (with the dmp, we move over the cube and afterwards use a linear motion to move down)
 
     if target_name == "blue_cube":
-        position_offset = [0.0, 0.0, 0.05]
+        position_offset = [0.0, 0.0, 0.04]
     elif target_name == "red_cube":
-        position_offset = [0.0, 0.0, 0.055]
+        position_offset = [0.0, 0.0, 0.045]
     elif target_name == "green_cube":
-        position_offset = [0.0, 0.0, 0.065]
+        position_offset = [0.0, 0.0, 0.055]
 
 
 
@@ -845,11 +845,11 @@ def approach_and_grasp_cube(dmp_gen, publisher, target_information, approach_dur
 
     #Introduce offset accoding to which cube is grasped.
     if target_name == "blue_cube":
-        position_offset = [0.0, 0.0, -0.025]
+        position_offset = [0.0, 0.0, -0.03]
     elif target_name == "red_cube":
         position_offset = [0.0, 0.0, -0.04]
     elif target_name == "green_cube":
-        position_offset = [0.0, 0.0, -0.03]
+        position_offset = [0.0, 0.0, -0.04]
 
 
     goal_position = np.array(start_position)+position_offset # The goal is the cube's center

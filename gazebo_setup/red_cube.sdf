@@ -4,14 +4,14 @@
     <static>false</static>
     <link name="link">
       <inertial>
-        <mass>0.0005</mass>
+        <mass>0.001</mass>
         <inertia>
-          <ixx>0.0000416</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.0000416</iyy>
-          <iyz>0</iyz>
-          <izz>0.0000416</izz>
+          <ixx>0.0000005</ixx>
+          <ixy>0.0000005</ixy>
+          <ixz>0.0000005</ixz>
+          <iyy>0.0000005</iyy>
+          <iyz>0.0000005</iyz>
+          <izz>0.0000005</izz>
         </inertia>
       </inertial>
       <collision name="collision">
@@ -44,10 +44,10 @@
             <collide_without_contact_bitmask>1</collide_without_contact_bitmask>
             <collide_bitmask>1</collide_bitmask>
             <ode>
-              <soft_cfm>0</soft_cfm>
+              <soft_cfm>0.00001</soft_cfm>
               <soft_erp>0.2</soft_erp>
-              <kp>1000000000</kp>
-              <kd>1000</kd>
+              <kp>10000</kp>
+              <kd>10</kd>
               <max_vel>0.01</max_vel>
               <min_depth>0</min_depth>
             </ode>
