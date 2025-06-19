@@ -127,16 +127,13 @@ RUN pip install h5py
 RUN pip install open3d
 RUN curl -fsSL https://ollama.com/install.sh | sh
 RUN pip install langchain_ollama
-RUN git clone https://github.com/sinedo/TowerOfHanoi.git
 
-# create symlinks
-RUN cd src/om_position_controller/ && ln -s /root/catkin_ws/TowerOfHanoi TowerOfHanoi
-RUN ollama serve & sleep 5 && exec ollama pull gemma3:12b
+RUN ollama serve & sleep 5 && exec ollama pull qwen3:8b
 # RUN ln -s src/om_position_controller/scripts/4_rs_detect_sim.py .
 
 RUN echo "roscd om_position_controller/scripts"
 
 # Set the default command
-CMD [ "bash", "-c", "ollama serve & exec bash" ]
+CMD [ "bash", "-c", "ollama serve & ../TowerOfHanoi/final/setup.sh && exec bash" ]
 
 # ENTRYPOINT [ "bash" ]

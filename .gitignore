@@ -52,3 +52,5 @@ CATKIN_IGNORE
 
 **/current_state.txt
 **/next_move.txt
+
+*results.md
